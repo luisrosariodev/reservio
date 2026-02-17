@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Reserv.io – Confirmación{% endblock %}
+
+{% block head %}
+<style>
+  .success-card {
+    width: 100%;
+    max-width: 780px;
+    background: var(--card);
+    border-radius: 24px;
+    padding: 26px 28px 30px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 24px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .tagline {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .section-title {
+    margin-top: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+  }
+
+  .summary {
+    font-size: 14px;
+    margin-top: 10px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 13px;
+  }
+
+  th, td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+
+  th {
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .total {
+    margin-top: 12px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .qr {
+    margin-top: 18px;
+  }
+
+  .qr img {
+    max-width: 220px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+
+  .note {
+    margin-top: 8px;
+    font-size: 13px;
+  }
+
+  .success-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    margin-top: 10px;
+  }
+
+  .steps {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.55;
+  }
+
+  .steps ol {
+    margin: 8px 0 0 18px;
+    padding: 0;
+  }
+
+  .actions {
+    margin-top: 18px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+  <div class="success-card">
+    <h1>Reserv.io</h1>
+    <div class="tagline">Your Booking Assistant</div>
+
+    <div class="section-title">
+      {% if payment_method == "ATH" %}
+        Reserva creada (pendiente de pago)
+      {% else %}
+        {% if checkout and checkout.status == "CONFIRMED" %}
+          Reserva confirmada
+        {% else %}
+          Reserva recibida (pago en proceso)
+        {% endif %}
+      {% endif %}
+    </div>
+
+    <div class="summary">
+      <p><strong>Trainer:</strong> {{ trainer.business_name }}</p>
+      <p><strong>Cliente:</strong> {{ client.name }} · {{ client.email }}</p>
+      <p><strong>Método de pago:</strong>
+        {% if payment_method == "ATH" %}ATH Móvil{% else %}Stripe (Tarjeta){% endif %}
+      </p>
+      {% if payment_method == "ATH" %}
+        <div class="success-pill">Estado: Pendiente de pago (ATH Móvil)</div>
+        <div class="steps">
+          <div class="hint" style="margin-top: 8px;">Completa tu pago para confirmar la reserva:</div>
+          <ol>
+            <li>Abre ATH Móvil y realiza el pago.</li>
+            <li>Envía el monto exacto: <strong>{{ total_amount }} {{ trainer.currency }}</strong>.</li>
+            <li>En la nota incluye una referencia (las verás abajo).</li>
+            <li>Luego de recibido, el trainer confirmará la reserva.</li>
+          </ol>
+        </div>
+      {% else %}
+        {% if checkout and checkout.status == "CONFIRMED" %}
+          <div class="success-pill">Estado: Confirmada (Stripe)</div>
+          <div class="hint">Pago confirmado. Recibirás confirmación por email. Si necesitas cambiar tu reserva, contacta al trainer.</div>
+        {% else %}
+          <div class="success-pill">Estado: Pendiente (Stripe)</div>
+          <div class="hint">Tu pago aún no se ha confirmado. Si ya pagaste, refresca esta página en unos segundos. Si cancelaste el pago, vuelve a reservar.</div>
+        {% endif %}
+      {% endif %}
+    </div>
+
+    <div class="section-title">Horarios reservados</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Hora</th>
+          <th>Referencia</th>
+          <th>Monto (sesión)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reservations %}
+          <tr>
+            <td>{{ r.timeslot.date|date:"d/m/Y" }}</td>
+            <td>{{ r.timeslot.time|time:"H:i" }} – {{ r.timeslot.end_datetime|time:"H:i" }}</td>
+            <td>{{ r.reference_code }}</td>
+            <td>{{ r.amount_due }} {{ trainer.currency }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="total">
+      Total a pagar: {{ total_amount }} {{ trainer.currency }}
+    </div>
+
+    {% if payment_method == "ATH" %}
+      <div class="qr">
+        {% if trainer.show_qr_on_checkout and trainer.ath_qr_image %}
+          <p>Escanea este QR para pagar por ATH Móvil:</p>
+          <img src="{{ trainer.ath_qr_image.url }}" alt="QR ATH Móvil">
+        {% else %}
+          <p>Envía el pago a: <strong>{{ trainer.ath_mobile_handle }}</strong></p>
+        {% endif %}
+        <div class="hint" style="margin-top: 10px;">
+          Asegúrate de enviar el monto exacto: <strong>{{ total_amount }} {{ trainer.currency }}</strong>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if payment_method == "ATH" %}
+      <div class="note">
+        En la nota del pago incluye al menos una de estas referencias:
+        <br>
+        {% for r in reservations %}
+          {{ r.reference_code }}{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if trainer.custom_instructions %}
+      <div class="section-title">Instrucciones adicionales</div>
+      <p class="hint">{{ trainer.custom_instructions|linebreaksbr }}</p>
+    {% endif %}
+
+    <div class="actions">
+      <a class="btn btn-primary" href="{% url 'booking:home_io' %}">Volver al inicio</a>
+      <a class="btn" href="javascript:window.print()">Imprimir / Guardar</a>
+    </div>
+  </div>
+{% endblock %}

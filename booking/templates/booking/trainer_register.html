@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Create Trainer Account – Reserv.io{% endblock %}
+
+{% block main %}
+<div class="card rio-auth-card">
+  <style>
+    /* Auth card sizing to match login */
+    .rio-auth-card {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 34px;
+    }
+
+    .rio-auth-title {
+      margin: 0;
+      font-size: clamp(2rem, 3.6vw, 2.6rem);
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+    }
+
+    .rio-auth-subtitle {
+      margin: 10px 0 0;
+      opacity: 0.82;
+      font-size: 1.05rem;
+    }
+
+    .rio-form { display: grid; gap: 18px; margin-top: 22px; }
+    .rio-field { display: grid; gap: 10px; }
+    .rio-label { font-weight: 650; letter-spacing: -0.01em; }
+    .rio-hint { margin: 0; opacity: 0.78; font-size: 0.95rem; }
+
+    /* Ensure inputs are full width and consistent */
+    .rio-form input[type="text"],
+    .rio-form input[type="email"],
+    .rio-form input[type="password"],
+    .rio-form input[type="tel"],
+    .rio-form input[type="url"],
+    .rio-form textarea,
+    .rio-form select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 14px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(15, 23, 42, 0.12) !important;
+      background: rgba(2, 6, 23, 0.04) !important;
+      color: inherit;
+      outline: none;
+    }
+
+    .rio-form input[type="text"]:disabled,
+    .rio-form input[type="email"]:disabled,
+    .rio-form input[type="password"]:disabled,
+    .rio-form input[type="tel"]:disabled,
+    .rio-form input[type="url"]:disabled,
+    .rio-form textarea:disabled,
+    .rio-form select:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .rio-form input::placeholder { opacity: 0.55; }
+
+    .rio-form input:focus,
+    .rio-form textarea:focus,
+    .rio-form select:focus {
+      border-color: rgba(56, 189, 248, 0.55);
+      box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15);
+    }
+
+    /* Dark mode polish */
+    @media (prefers-color-scheme: dark) {
+      .rio-form input[type="text"],
+      .rio-form input[type="email"],
+      .rio-form input[type="password"],
+      .rio-form input[type="tel"],
+      .rio-form input[type="url"],
+      .rio-form textarea,
+      .rio-form select {
+        border: 1px solid rgba(148, 163, 184, 0.30) !important;
+        background: rgba(2, 6, 23, 0.28) !important;
+      }
+    }
+
+    /* Actions match login: stacked, full width */
+    .rio-actions {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .rio-actions .btn,
+    .rio-actions button.btn {
+      width: 100%;
+      justify-content: center;
+      padding: 14px 16px;
+      border-radius: 16px;
+    }
+
+    .rio-actions .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .rio-actions button.btn {
+      appearance: none;
+      -webkit-appearance: none;
+      border: 1px solid transparent;
+    }
+
+    /* Force primary button to look identical for <button> and <a> */
+    .rio-actions .btn.btn-primary,
+    .rio-actions button.btn.btn-primary {
+      background: var(--primary-color, #2f6f5e) !important;
+      color: #fff !important;
+    }
+
+    .rio-actions .btn.btn-secondary,
+    .rio-actions button.btn.btn-secondary {
+      background: transparent;
+    }
+
+    .rio-errors { margin: 0; opacity: 0.9; }
+
+    /* Small screens */
+    @media (max-width: 560px) {
+      .rio-auth-card { padding: 22px; }
+      .rio-form { gap: 16px; }
+    }
+  </style>
+  <h1 class="rio-auth-title">Create your trainer account</h1>
+  <p class="rio-auth-subtitle">Set up your profile so clients can book sessions with you.</p>
+
+  <form method="post" class="rio-form" novalidate>
+    {% csrf_token %}
+    <div class="rio-field">
+      <label class="rio-label">Email address</label>
+      {{ form.email }}
+      <p class="rio-hint">Used for login and notifications.</p>
+      {% if form.email.errors %}<div class="rio-hint rio-errors">{{ form.email.errors }}</div>{% endif %}
+    </div>
+
+    <div class="rio-field">
+      <label class="rio-label">Business or trainer name</label>
+      {{ form.business_name }}
+      <p class="rio-hint">This is the name clients will see when booking.</p>
+      {% if form.business_name.errors %}<div class="rio-hint rio-errors">{{ form.business_name.errors }}</div>{% endif %}
+    </div>
+
+    <div class="rio-field">
+      <label class="rio-label">ATH Móvil username</label>
+      {{ form.ath_mobile_handle }}
+      <p class="rio-hint">Optional. Used for manual payments (example: @yourgym).</p>
+      {% if form.ath_mobile_handle.errors %}<div class="rio-hint rio-errors">{{ form.ath_mobile_handle.errors }}</div>{% endif %}
+    </div>
+
+    <div class="rio-field">
+      <label class="rio-label">Create password</label>
+      {{ form.password1 }}
+      <p class="rio-hint">At least 8 characters.</p>
+      {% if form.password1.errors %}<div class="rio-hint rio-errors">{{ form.password1.errors }}</div>{% endif %}
+    </div>
+
+    <div class="rio-field">
+      <label class="rio-label">Confirm password</label>
+      {{ form.password2 }}
+      {% if form.password2.errors %}<div class="rio-hint rio-errors">{{ form.password2.errors }}</div>{% endif %}
+    </div>
+
+    <div class="rio-actions">
+      <button class="btn btn-primary" type="submit">Create account</button>
+      <a class="btn btn-secondary" href="{% url 'booking:trainer_access' %}">Back to home</a>
+      <a class="btn btn-secondary" href="/accounts/login/">I already have an account</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

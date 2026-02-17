@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Trainer access · Reserv.io{% endblock %}
+
+{% block body %}
+<div class="page-center">
+  <div class="card auth-card">
+    <a class="link-back" href="{% url 'booking:home_io' %}">← Back to home</a>
+
+    <h1 class="auth-title">Trainer access</h1>
+    <p class="auth-hint">Create an account or sign in to manage availability and payouts.</p>
+
+    <div style="display:grid; gap:12px; margin-top:18px;">
+      <a class="btn btn-primary" href="{% url 'booking:trainer_register' %}">Create account</a>
+      <a class="btn" href="/accounts/login/">Sign in</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

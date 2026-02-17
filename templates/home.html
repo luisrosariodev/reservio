@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block title %}Reserv.io{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 1100px; padding: 34px;">
+
+  <!-- Top bar -->
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div style="
+        width: 36px; height: 36px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--bg2);
+        display:flex; align-items:center; justify-content:center;
+        font-weight:800;
+      ">R</div>
+
+      <div>
+        <div style="letter-spacing:.12em; text-transform:uppercase; font-weight:800; font-size:12px;">
+          Reserv.io
+        </div>
+        <div class="hint" style="margin-top:2px;">Your Booking Assistant</div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; align-items:center;">
+      <a href="/trainers/" class="btn btn-ghost">Browse trainers</a>
+      <a href="/trainer/onboarding/" class="btn btn-ghost">For trainers</a>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div style="margin-top: 26px; display:grid; grid-template-columns: 1.25fr 0.75fr; gap: 16px; align-items: start;">
+    <div>
+      <h1 style="margin:0; font-size:48px; line-height:1.05; letter-spacing:-0.02em;">
+        Book training sessions<br/>without the back-and-forth.
+      </h1>
+
+
+      <p class="hint" style="margin-top:14px; font-size:15px; max-width: 65ch;">
+        A modern booking & scheduling platform for personal trainers and gyms.
+        Weekly calendar, multi-session reservations, and payments via Stripe or ATH Móvil.
+      </p>
+
+      <!-- Why Reserv.io -->
+      <div style="margin-top:16px; display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px; max-width: 65ch;">
+        <div style="border:1px solid var(--border); border-radius:16px; padding:12px; background: var(--bg2);">
+          <div style="font-size:12px; letter-spacing:.12em; text-transform:uppercase; font-weight:750; color: var(--muted);">For clients</div>
+          <ul class="hint" style="margin:10px 0 0; padding-left:16px; display:grid; gap:6px;">
+            <li>Book in seconds — no back-and-forth.</li>
+            <li>Select multiple sessions across days.</li>
+            <li>Clear availability + remaining capacity.</li>
+          </ul>
+        </div>
+
+        <div style="border:1px solid var(--border); border-radius:16px; padding:12px; background: var(--bg2);">
+          <div style="font-size:12px; letter-spacing:.12em; text-transform:uppercase; font-weight:750; color: var(--muted);">For trainers</div>
+          <ul class="hint" style="margin:10px 0 0; padding-left:16px; display:grid; gap:6px;">
+            <li>Set weekly availability and capacity per slot.</li>
+            <li>Stripe auto-confirmation, ATH Móvil manual confirm.</li>
+            <li>Controlled SaaS — only registered trainers appear.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:12px; margin-top:22px; flex-wrap:wrap;">
+        <a href="/trainers/" class="btn btn-primary">Find a trainer</a>
+        <a href="/trainer/onboarding/" class="btn">I’m a personal trainer</a>
+      </div>
+
+      <div class="hint" style="margin-top:10px;">
+        Controlled SaaS — not a marketplace.
+      </div>
+
+      <!-- tiny trust row -->
+      <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap;">
+        <span class="pill">Stripe-ready</span>
+        <span class="pill">ATH Móvil supported</span>
+        <span class="pill">Weekly calendar</span>
+        <span class="pill">Multi-session booking</span>
+      </div>
+    </div>
+
+    <!-- Right: How it works -->
+    <div style="border:1px solid var(--border); border-radius:18px; padding:16px; background: var(--bg2);">
+      <div style="font-size:12px; letter-spacing:.12em; text-transform:uppercase; font-weight:750; color: var(--muted);">
+        How it works
+      </div>
+
+      <div style="margin-top:12px; display:grid; gap:10px;">
+        <div style="display:flex; gap:10px;">
+          <div class="pill" style="min-width:28px; text-align:center;">1</div>
+          <div>
+            <div style="font-weight:700;">Choose a trainer</div>
+            <div class="hint">Pick from registered trainers.</div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <div class="pill" style="min-width:28px; text-align:center;">2</div>
+          <div>
+            <div style="font-weight:700;">Select sessions</div>
+            <div class="hint">Multiple time slots across days.</div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <div class="pill" style="min-width:28px; text-align:center;">3</div>
+          <div>
+            <div style="font-weight:700;">Pay & confirm</div>
+            <div class="hint">Stripe auto-confirm. ATH manual confirm.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hint" style="margin-top:14px;">
+        MVP Phase 1 — focused on clarity.
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature row -->
+  <div style="margin-top: 22px; display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+    <div style="border:1px solid var(--border); border-radius:18px; padding:14px; background: var(--bg2);">
+      <div style="font-size:12px; letter-spacing:.12em; text-transform:uppercase; font-weight:750; color: var(--muted);">
+        Simple booking
+      </div>
+      <div style="margin-top:8px; font-size:14px;">
+        A clean weekly view designed to book fast.
+      </div>
+    </div>
+
+    <div style="border:1px solid var(--border); border-radius:18px; padding:14px; background: var(--bg2);">
+      <div style="font-size:12px; letter-spacing:.12em; text-transform:uppercase; font-weight:750; color: var(--muted);">
+        Multi-session flow
+      </div>
+      <div style="margin-top:8px; font-size:14px;">
+        Reserve multiple time slots in one checkout.
+      </div>
+    </div>
+
+    <div style="border:1px solid var(--border); border-radius:18px; padding:14px; background: var(--bg2);">
+      <div style="font-size:12px; letter-spacing:.12em; text-transform:uppercase; font-weight:750; color: var(--muted);">
+        Payments
+      </div>
+      <div style="margin-top:8px; font-size:14px;">
+        Stripe for cards + ATH Móvil for Puerto Rico.
+      </div>
+    </div>
+  </div>
+
+  <!-- Featured trainers -->
+  <div style="margin-top: 22px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <div>
+      <div style="font-size:12px; letter-spacing:.12em; text-transform:uppercase; font-weight:800; color: var(--muted);">Featured trainers</div>
+      <div class="hint" style="margin-top:4px;">A quick preview — browse the full list to book.</div>
+    </div>
+    <a href="/trainers/" class="btn btn-ghost">View all</a>
+  </div>
+
+  <div style="margin-top: 12px; display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+    <a href="/trainers/" style="text-decoration:none; color:inherit;">
+      <div style="border:1px solid var(--border); border-radius:18px; padding:14px; background: var(--bg2); height:100%;">
+        <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start;">
+          <div>
+            <div style="font-weight:800;">Strength & Conditioning</div>
+            <div class="hint" style="margin-top:2px;">Rosariodev Demo Gym</div>
+          </div>
+          <div class="pill">$ {{ trainer_price_preview|default:"60" }}</div>
+        </div>
+        <div class="hint" style="margin-top:10px;">Hypertrophy, strength blocks, and beginner-friendly plans.</div>
+        <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+          <span class="pill">1:1</span>
+          <span class="pill">Small groups</span>
+          <span class="pill">Weekly slots</span>
+        </div>
+        <div style="margin-top:12px; font-weight:800;">View availability →</div>
+      </div>
+    </a>
+
+    <a href="/trainers/" style="text-decoration:none; color:inherit;">
+      <div style="border:1px solid var(--border); border-radius:18px; padding:14px; background: var(--bg2); height:100%;">
+        <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start;">
+          <div>
+            <div style="font-weight:800;">Mobility & Rehab</div>
+            <div class="hint" style="margin-top:2px;">Bayamón Training Studio</div>
+          </div>
+          <div class="pill">From $45</div>
+        </div>
+        <div class="hint" style="margin-top:10px;">Mobility-first sessions to move better and reduce pain.</div>
+        <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+          <span class="pill">Mobility</span>
+          <span class="pill">Rehab</span>
+          <span class="pill">All levels</span>
+        </div>
+        <div style="margin-top:12px; font-weight:800;">View availability →</div>
+      </div>
+    </a>
+
+    <a href="/trainers/" style="text-decoration:none; color:inherit;">
+      <div style="border:1px solid var(--border); border-radius:18px; padding:14px; background: var(--bg2); height:100%;">
+        <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start;">
+          <div>
+            <div style="font-weight:800;">HIIT & Conditioning</div>
+            <div class="hint" style="margin-top:2px;">San Juan Performance Lab</div>
+          </div>
+          <div class="pill">From $35</div>
+        </div>
+        <div class="hint" style="margin-top:10px;">Fast sessions, high energy, and calendar-friendly scheduling.</div>
+        <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+          <span class="pill">HIIT</span>
+          <span class="pill">Conditioning</span>
+          <span class="pill">30–45 min</span>
+        </div>
+        <div style="margin-top:12px; font-weight:800;">View availability →</div>
+      </div>
+    </a>
+  </div>
+
+  <!-- Mini FAQ -->
+  <div style="margin-top: 22px; border:1px solid var(--border); border-radius:18px; padding:16px; background: var(--bg2);">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+      <div>
+        <div style="font-size:12px; letter-spacing:.12em; text-transform:uppercase; font-weight:800; color: var(--muted);">FAQ</div>
+        <div class="hint" style="margin-top:4px;">Quick answers before you book.</div>
+      </div>
+      <a href="/trainers/" class="btn btn-ghost">Start booking</a>
+    </div>
+
+    <div style="margin-top:12px; display:grid; gap:10px;">
+      <div style="border:1px solid var(--border); border-radius:16px; padding:12px; background: rgba(0,0,0,0.02);">
+        <div style="font-weight:800;">Is Reserv.io a marketplace?</div>
+        <div class="hint" style="margin-top:6px;">No. Reserv.io is a controlled SaaS — only registered trainers appear, so clients book with verified providers.</div>
+      </div>
+
+      <div style="border:1px solid var(--border); border-radius:16px; padding:12px; background: rgba(0,0,0,0.02);">
+        <div style="font-weight:800;">How does ATH Móvil work?</div>
+        <div class="hint" style="margin-top:6px;">After booking, you’ll see a QR code and instructions. The trainer manually confirms once payment is received.</div>
+      </div>
+
+      <div style="border:1px solid var(--border); border-radius:16px; padding:12px; background: rgba(0,0,0,0.02);">
+        <div style="font-weight:800;">Can I reserve multiple sessions?</div>
+        <div class="hint" style="margin-top:6px;">Yes. Select multiple time slots across multiple days, then complete one checkout.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="margin-top: 18px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; align-items:center;">
+    <div class="hint">© Reserv.io — MVP Phase 1</div>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+      <a class="hint" href="#" style="text-decoration:none;">Privacy</a>
+      <a class="hint" href="#" style="text-decoration:none;">Terms</a>
+      <a class="hint" href="mailto:hello@reserv.io" style="text-decoration:none;">Contact</a>
+      <span class="hint">Built for PR trainers & gyms</span>
+    </div>
+  </div>
+
+</div>
+
+<style>
+  @media (max-width: 860px){
+    h1{ font-size: 36px !important; }
+    div[style*="grid-template-columns: 1.25fr 0.75fr"]{ grid-template-columns: 1fr !important; }
+    div[style*="grid-template-columns: repeat(3, 1fr)"]{ grid-template-columns: 1fr !important; }
+  }
+</style>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Sign in · Reserv.io{% endblock %}
+
+{% block body %}
+<style>
+  /* Login page: keep username + password inputs visually consistent */
+  .auth-card form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .auth-card .field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .auth-card .field input[type="text"],
+  .auth-card .field input[type="email"],
+  .auth-card .field input[type="password"] {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(17, 24, 39, 0.18);
+    background: rgba(255, 255, 255, 0.7);
+    font-size: 16px;
+    line-height: 1.2;
+    font-family: inherit;
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+  }
+
+  .auth-card .field input[type="text"]:focus,
+  .auth-card .field input[type="email"]:focus,
+  .auth-card .field input[type="password"]:focus {
+    outline: none;
+    border-color: rgba(46, 125, 102, 0.55);
+    box-shadow: 0 0 0 4px rgba(46, 125, 102, 0.12);
+    background: rgba(255, 255, 255, 0.92);
+  }
+
+  .auth-card .btn.full {
+    margin-top: 6px;
+  }
+</style>
+<div class="page-center">
+  <div class="card auth-card">
+    <a class="link-back" href="{% url 'booking:trainer_access' %}">← Back to home</a>
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-hint">Sign in to manage your training sessions</p>
+
+    {% if form.errors %}
+      <div class="alert error">
+        Invalid email or password. Please try again.
+      </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="field">
+        <label for="id_username">Email / Username</label>
+        {{ form.username }}
+      </div>
+
+      <div class="field">
+        <label for="id_password">Password</label>
+        {{ form.password }}
+      </div>
+
+      <button type="submit" class="btn btn-primary full">
+        Sign in
+      </button>
+
+      <p class="auth-hint" style="margin:12px 0 0;">
+        <a href="{% url 'password_reset' %}">Forgot password?</a>
+      </p>
+    </form>
+
+    <div class="auth-footer">
+      <a href="{% url 'booking:home' %}">Back to home</a>
+      <span class="dot">•</span>
+      <a href="{% url 'booking:trainer_register' %}">Create an account</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

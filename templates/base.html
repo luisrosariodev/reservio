@@ -1,0 +1,235 @@
+{% load static %}
+<!doctype html>
+<html lang="en" data-theme="auto">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{% block title %}Reserv.io{% endblock %}</title>
+
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/components.css' %}">
+
+  <style>
+    /* Prevent desktop + mobile header content from showing at the same time */
+    .desktop-only { display: flex; align-items: center; gap: 12px; }
+    .mobile-only { display: none; }
+    .mobile-nav { display: none; }
+
+    @media (max-width: 860px) {
+      .desktop-only { display: none !important; }
+      .mobile-only { display: flex; align-items: center; }
+      .nav-toggle:checked ~ .mobile-only .mobile-nav { display: block; }
+    }
+
+    /* =============================
+       Simple footer (reference style)
+       ============================= */
+    .footer-simple{
+      background: var(--surface-1, #f6f4ef);
+      border-top: 1px solid var(--border, rgba(0,0,0,.08));
+    }
+
+    .footer-simple-inner{
+      padding: 56px 0 32px;
+    }
+
+    .footer-simple-grid{
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr 1fr;
+      gap: 44px;
+      align-items: start;
+    }
+
+    .footer-simple-brand .brand-name{
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      font-size: 28px;
+    }
+
+    .footer-simple-note{
+      margin-top: 14px;
+      max-width: 28ch;
+      color: var(--muted, rgba(0,0,0,.62));
+      line-height: 1.55;
+    }
+
+    .footer-simple-title{
+      margin: 2px 0 14px;
+      font-size: 16px;
+      font-weight: 650;
+    }
+
+    .footer-simple-link{
+      display: inline-block;
+      padding: 8px 0;
+      color: var(--text, rgba(0,0,0,.78));
+      text-decoration: none;
+    }
+
+    .footer-simple-link:hover{
+      text-decoration: underline;
+    }
+
+    .footer-simple-inline{ display: inline; }
+
+    .footer-simple-link-btn{
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .footer-simple-bottom{
+      margin-top: 38px;
+      padding-top: 26px;
+      border-top: 1px solid var(--border, rgba(0,0,0,.08));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      color: var(--muted, rgba(0,0,0,.62));
+    }
+
+    @media (max-width: 980px){
+      .footer-simple-grid{ grid-template-columns: 1fr 1fr; }
+      .footer-simple-note{ max-width: 40ch; }
+    }
+
+    @media (max-width: 560px){
+      .footer-simple-inner{ padding: 44px 0 26px; }
+      .footer-simple-grid{ grid-template-columns: 1fr; gap: 28px; }
+      .footer-simple-note{ max-width: 42ch; }
+    }
+    @media (max-width: 720px){
+      .footer-simple-bottom{ flex-direction: column; text-align: center; }
+    }
+  </style>
+
+  {% block head %}{% endblock %}
+</head>
+
+<body id="top">
+  <!-- Top App Bar -->
+  <header class="site-header" role="banner">
+    <div class="container header-inner nav-inner">
+      <a class="brand site-brand" href="{% url 'booking:home_io' %}" aria-label="Reserv.io home">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">Reserv.io</span>
+      </a>
+
+      <div class="mobile-only">
+        <!-- Mobile nav toggle (CSS-only) -->
+        <input class="nav-toggle" type="checkbox" id="nav-toggle" aria-label="Open menu" />
+        <label class="nav-toggle-btn menu-toggle" for="nav-toggle" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </label>
+      </div>
+
+      <div class="desktop-only">
+        <nav class="nav site-nav" aria-label="Primary">
+          <a class="nav-link" href="{% url 'booking:trainer_list' %}">Trainers</a>
+          <a class="nav-link" href="{% url 'booking:home_io' %}#how">How it works</a>
+          <a class="nav-link" href="{% url 'booking:home_io' %}#trainers">Featured</a>
+        </nav>
+      </div>
+
+      <div class="desktop-only">
+        <div class="header-actions nav-actions">
+          {% if request.user.is_authenticated %}
+            <a class="btn btn-ghost" href="{% url 'booking:trainer_portal' %}">Portal</a>
+            <form method="post" action="{% url 'logout' %}" class="inline-form">
+              {% csrf_token %}
+              <button class="btn btn-ghost" type="submit">Log out</button>
+            </form>
+          {% else %}
+            <a class="btn btn-ghost" href="{% url 'login' %}">Sign in</a>
+            <a class="btn btn-primary" href="{% url 'booking:trainer_access' %}">Get started</a>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="mobile-only">
+        <!-- Mobile menu panel (same links + actions) -->
+        <div class="mobile-nav" role="dialog" aria-label="Menu" aria-modal="true">
+          <div class="mobile-nav-inner">
+            <div class="mobile-nav-links">
+              <a class="nav-link" href="{% url 'booking:trainer_list' %}" onclick="document.getElementById('nav-toggle').checked=false">Trainers</a>
+              <a class="nav-link" href="{% url 'booking:home_io' %}#how" onclick="document.getElementById('nav-toggle').checked=false">How it works</a>
+              <a class="nav-link" href="{% url 'booking:home_io' %}#trainers" onclick="document.getElementById('nav-toggle').checked=false">Featured</a>
+            </div>
+
+            <div class="mobile-nav-actions">
+              {% if request.user.is_authenticated %}
+                <a class="btn btn-ghost" href="{% url 'booking:trainer_portal' %}" onclick="document.getElementById('nav-toggle').checked=false">Portal</a>
+                <form method="post" action="{% url 'logout' %}" class="inline-form">
+                  {% csrf_token %}
+                  <button class="btn btn-ghost" type="submit">Log out</button>
+                </form>
+              {% else %}
+                <a class="btn btn-ghost" href="{% url 'login' %}" onclick="document.getElementById('nav-toggle').checked=false">Sign in</a>
+                <a class="btn btn-primary" href="{% url 'booking:trainer_access' %}" onclick="document.getElementById('nav-toggle').checked=false">Get started</a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page -->
+  <main class="site-main">
+    {% block main %}
+      <div class="{% block main_container_class %}container{% endblock %}">
+        {% block body %}{% endblock %}
+      </div>
+    {% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer-simple" role="contentinfo">
+    <div class="container footer-simple-inner">
+      <div class="footer-simple-grid">
+        <div class="footer-simple-brand">
+          <div class="brand">
+            <span class="brand-name">Reserv.io</span>
+          </div>
+          <p class="footer-simple-note">
+            Modern booking for trainers & gyms. Built for clarity, speed, and secure payments.
+          </p>
+          <p class="footer-simple-note footer-simple-inline">
+            <strong>Stripe</strong>&nbsp;&nbsp;<strong>ATH Móvil</strong>&nbsp;&nbsp;<strong>SaaS</strong>
+          </p>
+        </div>
+
+        <div class="footer-simple-col">
+          <div class="footer-simple-title">Product</div>
+          <a class="footer-simple-link" href="{% url 'booking:trainer_list' %}">Find trainers</a>
+          <a class="footer-simple-link" href="{% url 'booking:home_io' %}#how">How it works</a>
+          <a class="footer-simple-link" href="{% url 'booking:trainer_access' %}">For trainers</a>
+        </div>
+
+        <div class="footer-simple-col">
+          <div class="footer-simple-title">Account</div>
+          <a class="footer-simple-link" href="{% url 'login' %}">Sign in</a>
+          <a class="footer-simple-link" href="{% url 'booking:trainer_register' %}">Create trainer profile</a>
+          <a class="footer-simple-link" href="{% url 'password_reset' %}">Reset password</a>
+        </div>
+
+        <div class="footer-simple-col">
+          <div class="footer-simple-title">Legal</div>
+          <a class="footer-simple-link" href="#">Privacy</a>
+          <a class="footer-simple-link" href="#">Terms</a>
+        </div>
+      </div>
+
+      <div class="footer-simple-bottom">
+        <span>© {% now "Y" %} Reserv.io</span>
+        <span aria-hidden="true">•</span>
+        <span>Puerto Rico</span>
+      </div>
+    </div>
+  </footer>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

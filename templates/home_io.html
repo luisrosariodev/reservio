@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Reserv.io · Your Booking Assistant{% endblock %}
+
+{% block main %}
+<div class="page-center">
+  <div class="card" style="max-width:520px; padding:48px; text-align:center;">
+
+    <h1 style="margin:0 0 12px 0;">Reserv.io</h1>
+    <p style="margin:0 0 32px 0; color:var(--text-muted);">
+      Book training sessions without the back-and-forth.
+    </p>
+
+    <div style="display:grid; gap:16px;">
+      <a class="btn btn-primary" href="{% url 'booking:trainer_list' %}">
+        Find a trainer
+      </a>
+
+      <a class="btn" href="{% url 'booking:trainer_access' %}">
+        I’m a personal trainer
+      </a>
+    </div>
+
+    <div style="margin-top:28px; font-size:14px;">
+      Already have an account?
+      <a class="link" href="{% url 'login' %}">Sign in</a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

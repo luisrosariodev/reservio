@@ -1,0 +1,762 @@
+{% extends "base.html" %}
+{% block title %}Trainer Portal – Reserv.io{% endblock %}
+
+{% block main %}
+<div class="card portal" style="padding:28px; max-width:1240px; margin:0 auto; width:100%;">
+  <style>
+    /* Trainer portal – minimal, self-contained layout helpers */
+    .portal-header{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap}
+    .portal-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+
+    .portal-share{display:flex;gap:10px;align-items:center;margin-top:18px;flex-wrap:wrap}
+    .portal-share input{flex:1;min-width:260px;max-width:820px}
+
+    .portal-divider{height:1px;background:var(--border);margin:18px 0}
+
+    /* Settings (read vs edit) */
+    .settings-grid{display:grid;gap:14px;max-width:720px}
+    .settings-field{display:grid;gap:6px}
+    .readonly-value{padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:rgba(0,0,0,.03);font-weight:600;line-height:1.35}
+    .readonly-value small{display:block;font-weight:500;opacity:.8;margin-top:2px}
+
+    /* Tabs */
+    .portal-tabs{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0 18px}
+    .portal-tab{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border);border-radius:999px;background:transparent;text-decoration:none;font-weight:700}
+    .portal-tab.active{background:rgba(0,0,0,.04)}
+    .portal-tab .pill{margin-left:6px}
+
+    .acc summary{display:flex;justify-content:space-between;align-items:center;gap:14px;cursor:pointer}
+    .acc summary::-webkit-details-marker{display:none}
+
+    /* Availability editor */
+    .avail-help{margin:10px 0 14px;max-width:920px}
+
+    /* List by day (more "dashboard" like) */
+    .avail-days{display:grid;gap:14px}
+    .avail-day{border:1px solid var(--border);border-radius:16px;padding:14px}
+
+    .avail-day-head{display:grid;grid-template-columns:160px 1fr auto;gap:12px;align-items:center}
+    .avail-day-title{display:flex;align-items:center;gap:10px}
+    .avail-day-title h4{margin:0;font-size:14px;letter-spacing:.02em;text-transform:uppercase;opacity:.9}
+
+    /* Day switch */
+    .day-switch{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+
+    /* iOS-like toggle (UISwitch-ish) */
+    .ios-toggle{display:inline-flex;align-items:center;cursor:pointer;user-select:none}
+    .ios-toggle input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+
+    .ios-toggle-ui{
+      width:51px;
+      height:31px;
+      border-radius:999px;
+      background:#e5e5ea; /* iOS off track */
+      border:1px solid rgba(0,0,0,.08);
+      position:relative;
+      transition:background .18s ease, box-shadow .18s ease;
+    }
+
+    .ios-toggle-ui::after{
+      content:"";
+      position:absolute;
+      top:2px; left:2px;
+      width:27px; height:27px;
+      border-radius:999px;
+      background:#fff;
+      box-shadow:0 3px 8px rgba(0,0,0,.22);
+      transition:transform .18s ease;
+    }
+
+    /* ON */
+    .ios-toggle input:checked + .ios-toggle-ui{background:#34c759}
+    .ios-toggle input:checked + .ios-toggle-ui::after{transform:translateX(20px)}
+
+    /* Focus */
+    .ios-toggle input:focus-visible + .ios-toggle-ui{box-shadow:0 0 0 4px rgba(52,199,89,.25)}
+
+    /* Disabled */
+    .ios-toggle input:disabled + .ios-toggle-ui{opacity:.55;cursor:not-allowed}
+
+    .day-state{font-weight:700;opacity:.9}
+
+    /* Blocks */
+    .avail-grid{display:grid;gap:10px;margin-top:12px}
+    .avail-row{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end}
+    .avail-row label{display:block;font-weight:600;margin-bottom:6px}
+
+    .avail-times{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+    .avail-right{display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;padding-bottom:4px}
+    .avail-right label{margin:0;font-weight:600;display:flex;align-items:center;gap:8px}
+
+    .avail-day-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+
+    .avail-empty-state{margin-top:10px;opacity:.75}
+
+    .avail-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap}
+
+    @media (max-width: 640px){
+      .portal{padding:18px !important}
+      .portal-actions{justify-content:flex-start}
+      .portal-share input{min-width:0;width:100%}
+      .portal-tab{width:100%;justify-content:space-between}
+    }
+    @media (max-width: 820px){
+      .avail-row{grid-template-columns:1fr;align-items:stretch}
+      .avail-times{grid-template-columns:1fr}
+      .avail-right{justify-content:flex-start}
+    }
+  </style>
+
+  {% if user.is_authenticated and trainer %}
+
+    <!-- Portal header (single surface) -->
+    <div class="portal-header">
+      <div class="portal-title" style="min-width:0;">
+        <div class="hint" style="margin:0 0 4px;">Trainer portal</div>
+        <h2 style="margin:0; line-height:1.2;">{{ trainer.business_name }}</h2>
+        <div class="hint" style="margin-top:6px;">Gestiona tu disponibilidad, precios y pagos.</div>
+      </div>
+
+      <div class="portal-actions">
+        <form method="post" action="{% url 'logout' %}" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-secondary" title="Sign out">Log out</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Share link (no nested card) -->
+    <div class="portal-share">
+      <input
+        id="bookingLink"
+        type="text"
+        value="{{ request.scheme }}://{{ request.get_host }}/t/{{ trainer.slug }}/book/"
+        readonly
+      />
+      <button type="button" class="btn" onclick="navigator.clipboard.writeText(document.getElementById('bookingLink').value)">Copy link</button>
+    </div>
+
+    <div class="portal-divider"></div>
+
+    {% with tab=request.GET.tab|default:"availability" %}
+      <nav class="portal-tabs" aria-label="Trainer portal sections">
+        <a class="portal-tab {% if tab == 'agenda' %}active{% endif %}" href="?tab=agenda">Agenda</a>
+        <a class="portal-tab {% if tab == 'availability' %}active{% endif %}" href="?tab=availability">Disponibilidad</a>
+        <a class="portal-tab {% if tab == 'profile' %}active{% endif %}" href="?tab=profile">Precios & reservas</a>
+        <a class="portal-tab {% if tab == 'payments' %}active{% endif %}" href="?tab=payments">Pagos</a>
+        <a class="portal-tab {% if tab == 'clients' %}active{% endif %}" href="?tab=clients">Clientes</a>
+      </nav>
+    {% endwith %}
+
+    <!-- Sections (tabs) – render only the selected tab content -->
+    {% with tab=request.GET.tab|default:"availability" %}
+      <div>
+
+        {% if tab == 'availability' %}
+          <section class="acc" style="border:1px solid var(--border); border-radius:16px; padding:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div style="font-weight:800;">Disponibilidad</div>
+                <span class="pill warn">Next</span>
+              </div>
+              <span class="hint">Define tu horario semanal</span>
+            </div>
+
+            <div class="portal-divider" style="margin:14px 0;"></div>
+
+            <form method="post" action="?tab=availability">
+              {% csrf_token %}
+              <input type="hidden" name="form_name" value="availability" />
+
+              {% if availability_formset %}
+                {{ availability_formset.management_form }}
+
+                <div class="hint avail-help">
+                  Define tu horario semanal. A partir de esto se generan los espacios reservables.
+                  <br>
+                  <strong>Tip:</strong> Puedes añadir varios bloques el mismo día (ej.: 9:00–12:00 y 2:00–6:00). Solo evita que se solapen.
+                </div>
+
+                <div class="avail-days">
+                  {# Days are 0=Mon .. 6=Sun in the model/form choices #}
+                  {% for day in "0123456" %}
+                    {% with day_int=day|add:0 %}
+                    <section class="avail-day" data-weekday="{{ day_int }}">
+
+                      <div class="avail-day-head">
+                        <div class="avail-day-title">
+                          <h4>
+                            {% if day_int == 0 %}Monday{% elif day_int == 1 %}Tuesday{% elif day_int == 2 %}Wednesday{% elif day_int == 3 %}Thursday{% elif day_int == 4 %}Friday{% elif day_int == 5 %}Saturday{% else %}Sunday{% endif %}
+                          </h4>
+                        </div>
+
+                        <div class="day-switch">
+                        <label class="ios-toggle">
+                          <input
+                            type="checkbox"
+                            class="dayToggle"
+                            data-weekday="{{ day_int }}"
+                            aria-label="Enable this day"
+                          />
+                          <span class="ios-toggle-ui" aria-hidden="true"></span>
+                        </label>
+                          <span class="day-state" data-day-state="{{ day_int }}">No disponible</span>
+                          <span class="hint">Puedes añadir varios bloques (mañana + tarde).</span>
+                        </div>
+
+                        <div class="avail-day-actions">
+                          <button type="button" class="btn availAddDayBtn" data-weekday="{{ day_int }}">+ Añadir bloque</button>
+                        </div>
+                      </div>
+
+                      <div class="avail-grid" data-day-grid="{{ day_int }}">
+                        {% for f in availability_formset %}
+                          {% if f.weekday.value|default_if_none:0|stringformat:"s" == day_int|stringformat:"s" %}
+                            {% if f.instance.pk or f.start_time.value or f.end_time.value or f.is_active.value %}
+                            <div class="avail-row" data-form-index="{{ forloop.counter0 }}">
+                              <div style="display:none;">
+                                {{ f.weekday }}
+                                {% for error in f.weekday.errors %}
+                                  <div class="alert alert-error" style="margin-top:6px;">{{ error }}</div>
+                                {% endfor %}
+                              </div>
+
+                              <div class="avail-times">
+                                <div>
+                                  <label>Inicio</label>
+                                  {{ f.start_time }}
+                                  {% for error in f.start_time.errors %}
+                                    <div class="alert alert-error" style="margin-top:6px;">{{ error }}</div>
+                                  {% endfor %}
+                                </div>
+
+                                <div>
+                                  <label>Fin</label>
+                                  {{ f.end_time }}
+                                  {% for error in f.end_time.errors %}
+                                    <div class="alert alert-error" style="margin-top:6px;">{{ error }}</div>
+                                  {% endfor %}
+                                </div>
+                              </div>
+
+                              <div class="avail-right">
+                                <label style="gap:10px;">
+                                  {{ f.is_active }}
+                                  <span>Activo</span>
+                                </label>
+
+                                {% if f.DELETE %}
+                                  <button type="button" class="btn btn-secondary availRemoveBtn" aria-label="Delete this time block">Eliminar</button>
+                                  <div style="display:none;">{{ f.DELETE }}</div>
+                                  {% for error in f.DELETE.errors %}
+                                    <div class="alert alert-error" style="margin-top:6px;">{{ error }}</div>
+                                  {% endfor %}
+                                {% endif %}
+                              </div>
+
+                              {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+
+                              {% for error in f.non_field_errors %}
+                                <div class="alert alert-error" style="grid-column: 1 / -1;">{{ error }}</div>
+                              {% endfor %}
+                            </div>
+                            {% endif %}
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+
+                      <div class="hint avail-empty-state" data-day-empty="{{ day_int }}">
+                        Ejemplo: 9:00–12:00 y 2:00–6:00.
+                      </div>
+
+                    </section>
+                    {% endwith %}
+                  {% endfor %}
+                </div>
+
+                <!-- Hidden empty-form template used by the Add button -->
+                <div id="avail-empty" style="display:none;">
+                  <div class="avail-row" data-form-index="__prefix__">
+                    <div style="display:none;">{{ availability_formset.empty_form.weekday }}</div>
+
+                    <div class="avail-times">
+                      <div>
+                        <label>Inicio</label>
+                        {{ availability_formset.empty_form.start_time }}
+                      </div>
+
+                      <div>
+                        <label>Fin</label>
+                        {{ availability_formset.empty_form.end_time }}
+                      </div>
+                    </div>
+
+                    <div class="avail-right">
+                      <label style="gap:10px;">
+                        {{ availability_formset.empty_form.is_active }}
+                        <span>Activo</span>
+                      </label>
+                      {% if availability_formset.empty_form.DELETE %}
+                        <button type="button" class="btn btn-secondary availRemoveBtn" aria-label="Delete this time block">Eliminar</button>
+                        <div style="display:none;">{{ availability_formset.empty_form.DELETE }}</div>
+                      {% endif %}
+                    </div>
+
+                    {% for hidden in availability_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+                  </div>
+                </div>
+
+                <script>
+                  (function(){
+                    const empty = document.getElementById('avail-empty');
+                    if(!empty) return;
+
+                    const prefix = "{{ availability_formset.prefix }}";
+
+                    function setDayEnabled(dayInt, enabled){
+                      const grid = document.querySelector('[data-day-grid="' + dayInt + '"]');
+                      const state = document.querySelector('[data-day-state="' + dayInt + '"]');
+                      const emptyHint = document.querySelector('[data-day-empty="' + dayInt + '"]');
+                      if(state) state.textContent = enabled ? 'Disponible' : 'No disponible';
+
+                      if(!grid) return;
+
+                      grid.querySelectorAll('input, select, textarea').forEach((el) => {
+                        const name = el.getAttribute('name') || '';
+                        const type = (el.getAttribute('type') || '').toLowerCase();
+                        if(name.endsWith('-DELETE')) return;
+                        if(type === 'hidden' && name.endsWith('-id')) return;
+                        el.disabled = !enabled;
+                      });
+
+                      if(!enabled){
+                        grid.querySelectorAll('input[type="checkbox"][name$="-is_active"]').forEach((cb) => {
+                          cb.checked = false;
+                        });
+                      }
+
+                      if(emptyHint){
+                        const hasVisibleRow = !!grid.querySelector('.avail-row:not([style*="display: none"])');
+                        emptyHint.style.display = hasVisibleRow ? 'none' : 'block';
+                      }
+                    }
+
+                    function initDayToggles(){
+                      document.querySelectorAll('.dayToggle').forEach((toggle) => {
+                        const dayInt = parseInt(toggle.getAttribute('data-weekday') || '0', 10);
+                        const grid = document.querySelector('[data-day-grid="' + dayInt + '"]');
+                        const hasRow = grid ? !!grid.querySelector('.avail-row:not([style*="display: none"])') : false;
+                        toggle.checked = hasRow;
+                        setDayEnabled(dayInt, toggle.checked);
+
+                        toggle.addEventListener('change', function(){
+                          setDayEnabled(dayInt, toggle.checked);
+                        });
+                      });
+                    }
+
+                    function addRowForDay(dayInt){
+                      const totalInput = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
+                      const grid = document.querySelector('[data-day-grid="' + dayInt + '"]');
+                      if(!totalInput || !grid) return;
+
+                      const index = parseInt(totalInput.value || '0', 10);
+                      const html = empty.innerHTML.replaceAll('__prefix__', String(index));
+
+                      const wrapper = document.createElement('div');
+                      wrapper.innerHTML = html;
+                      const row = wrapper.firstElementChild;
+                      if(!row) return;
+
+                      const weekdaySelect = row.querySelector('select[name="' + prefix + '-' + index + '-weekday"]');
+                      if(weekdaySelect){
+                        weekdaySelect.value = String(dayInt);
+                      }
+
+                      const activeInput = row.querySelector('input[name="' + prefix + '-' + index + '-is_active"]');
+                      if(activeInput && activeInput.type === 'checkbox'){
+                        activeInput.checked = false;
+                      }
+
+                      grid.appendChild(row);
+                      totalInput.value = String(index + 1);
+
+                      const dayToggle = document.querySelector('.dayToggle[data-weekday="' + dayInt + '"]');
+                      if(dayToggle && !dayToggle.checked){
+                        dayToggle.checked = true;
+                        setDayEnabled(dayInt, true);
+                      }
+
+                      const emptyHint = document.querySelector('[data-day-empty="' + dayInt + '"]');
+                      if(emptyHint) emptyHint.style.display = 'none';
+
+                      const start = row.querySelector('input[name="' + prefix + '-' + index + '-start_time"]');
+                      if(start) start.focus();
+                    }
+
+                    document.querySelectorAll('.availAddDayBtn').forEach((btn) => {
+                      btn.addEventListener('click', function(){
+                        const dayInt = parseInt(btn.getAttribute('data-weekday') || '0', 10);
+                        addRowForDay(dayInt);
+                      });
+                    });
+
+                    document.addEventListener('click', function(e){
+                      const btn = e.target.closest('.availRemoveBtn');
+                      if(!btn) return;
+
+                      const row = btn.closest('.avail-row');
+                      if(!row) return;
+
+                      const deleteInput = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+                      const idInput = row.querySelector('input[name$="-id"]');
+
+                      if(idInput && idInput.value){
+                        if(deleteInput){
+                          deleteInput.checked = true;
+                        }
+                        row.querySelectorAll('input, select, textarea').forEach((el) => {
+                          const name = el.getAttribute('name') || '';
+                          if(name.endsWith('-DELETE')) return;
+                          el.disabled = true;
+                        });
+                        row.style.display = 'none';
+
+                        const daySection = row.closest('.avail-day');
+                        if(daySection){
+                          const dayInt = parseInt(daySection.getAttribute('data-weekday') || '0', 10);
+                          const grid = daySection.querySelector('[data-day-grid="' + dayInt + '"]');
+                          const hasVisibleRow = grid ? !!grid.querySelector('.avail-row:not([style*="display: none"])') : false;
+                          const dayToggle = daySection.querySelector('.dayToggle[data-weekday="' + dayInt + '"]');
+                          if(dayToggle) dayToggle.checked = hasVisibleRow;
+                          setDayEnabled(dayInt, hasVisibleRow);
+                        }
+                        return;
+                      }
+
+                      row.querySelectorAll('input, select, textarea').forEach((el) => {
+                        const type = (el.getAttribute('type') || '').toLowerCase();
+                        if(type === 'checkbox' || type === 'radio') {
+                          el.checked = false;
+                        } else {
+                          el.value = '';
+                        }
+                        el.disabled = true;
+                      });
+
+                      row.style.display = 'none';
+
+                      const daySection = row.closest('.avail-day');
+                      if(daySection){
+                        const dayInt = parseInt(daySection.getAttribute('data-weekday') || '0', 10);
+                        const grid = daySection.querySelector('[data-day-grid="' + dayInt + '"]');
+                        const hasVisibleRow = grid ? !!grid.querySelector('.avail-row:not([style*="display: none"])') : false;
+                        const dayToggle = daySection.querySelector('.dayToggle[data-weekday="' + dayInt + '"]');
+                        if(dayToggle) dayToggle.checked = hasVisibleRow;
+                        setDayEnabled(dayInt, hasVisibleRow);
+                      }
+                    });
+
+                    initDayToggles();
+                  })();
+                </script>
+
+                {% for error in availability_formset.non_form_errors %}
+                  <div class="alert alert-error" style="margin-top:12px;">{{ error }}</div>
+                {% endfor %}
+
+                <div class="avail-actions" style="margin-top:18px;">
+                  <div style="display:flex; flex-wrap:wrap; gap:10px;">
+                    <a class="btn" href="{% url 'booking:booking' slug=trainer.slug %}">Ver página de reservas</a>
+                    <a class="btn" href="{% url 'booking:trainer_list' %}">Ver listado público</a>
+                  </div>
+                  <button type="submit" class="btn btn-primary">Guardar disponibilidad</button>
+                </div>
+
+              {% else %}
+                <div class="hint">Availability form is not wired yet (missing <code>availability_formset</code> in view context).</div>
+                <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;">
+                  <a class="btn" href="{% url 'booking:booking' slug=trainer.slug %}">Preview booking page</a>
+                  <a class="btn" href="{% url 'booking:trainer_list' %}">See public listing</a>
+                </div>
+              {% endif %}
+            </form>
+          </section>
+
+        {% elif tab == 'profile' %}
+          <section class="acc" style="border:1px solid var(--border); border-radius:16px; padding:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+              <div style="font-weight:800;">Precios & reservas</div>
+              <span class="hint">Precio por sesión y reglas de reserva</span>
+            </div>
+
+            <div class="portal-divider" style="margin:14px 0;"></div>
+
+            <form method="post" action="?tab=profile{% if request.GET.edit == '1' %}&edit=1{% endif %}">
+              {% csrf_token %}
+              <input type="hidden" name="form_name" value="settings" />
+              {% with is_edit=request.GET.edit|default:"0" %}
+                {% if is_edit != "1" %}
+                  <div class="hint" style="margin-bottom:12px; max-width:720px;">
+                    These settings are saved. Click <strong>Edit</strong> to make changes.
+                  </div>
+                {% endif %}
+              {% endwith %}
+
+              <div class="settings-grid">
+              {% for field in form %}
+                {% if field.name != "business_name" %}
+                  <div class="settings-field">
+                    <label style="display:block; font-weight:600;">{{ field.label }}</label>
+
+                    {% if request.GET.edit == '1' %}
+                      {{ field }}
+                    {% else %}
+                      <div class="readonly-value">
+                        {% if field.value %}{{ field.value }}{% else %}<span class="hint">—</span>{% endif %}
+                        {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+                      </div>
+                    {% endif %}
+
+                    {% if request.GET.edit == '1' and field.help_text %}
+                      <div class="hint" style="margin-top:4px;">{{ field.help_text }}</div>
+                    {% endif %}
+
+                    {% for error in field.errors %}
+                      <div class="alert alert-error" style="margin-top:6px;">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              {% endfor %}
+              </div>
+
+              <div style="display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; margin-top:14px;">
+                {% if request.GET.edit == '1' %}
+                  <a class="btn btn-secondary" href="?tab=profile">Cancel</a>
+                  <button type="submit" class="btn btn-primary">Save changes</button>
+                {% else %}
+                  <a class="btn" href="?tab=profile&edit=1">Edit</a>
+                {% endif %}
+              </div>
+            </form>
+          </section>
+
+        {% elif tab == 'payments' %}
+          <section class="acc" style="border:1px solid var(--border); border-radius:16px; padding:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div style="font-weight:800;">Pagos</div>
+                {% if stripe_status.state == 'connected' %}
+                  <span class="pill success">Connected</span>
+                {% elif stripe_status.state == 'incomplete' %}
+                  <span class="pill warn">Action needed</span>
+                {% elif stripe_status.state == 'error' %}
+                  <span class="pill warn">Error</span>
+                {% else %}
+                  <span class="pill">Not connected</span>
+                {% endif %}
+              </div>
+              <span class="hint">Pagos por Stripe</span>
+            </div>
+
+            <div class="portal-divider" style="margin:14px 0;"></div>
+
+            <div style="display:grid; grid-template-columns:1fr auto; gap:14px; align-items:start;">
+              <div style="max-width:520px;">
+                <div class="hint">{{ stripe_status.message }}</div>
+                {% if stripe_status.state != 'connected' %}
+                  <div class="hint" style="margin-top:10px;">Connect Stripe so you can receive payouts directly to your bank account.</div>
+                {% endif %}
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:10px; align-items:flex-end;">
+                {% if stripe_status.state != 'connected' %}
+                  <a class="btn btn-primary" href="{% url 'booking:trainer_stripe_connect_start' %}">
+                    {% if stripe_status.state == 'incomplete' %}Finish Stripe setup{% else %}Connect Stripe{% endif %}
+                  </a>
+                  <a class="btn btn-secondary" href="{% url 'booking:trainer_stripe_connect_refresh' %}">Reconnect</a>
+                  {% if stripe_status.state == 'incomplete' %}
+                    <div class="hint" style="text-align:right; max-width:240px;">Finish onboarding to enable payouts.</div>
+                  {% endif %}
+                {% else %}
+                  <a class="btn" href="{% url 'booking:trainer_stripe_connect_start' %}">Manage Stripe</a>
+                  <div class="hint" style="text-align:right; max-width:260px;">Connected — payouts will go to your bank account.</div>
+                {% endif %}
+              </div>
+            </div>
+          </section>
+
+        {% elif tab == 'agenda' %}
+          <section class="acc" style="border:1px solid var(--border); border-radius:16px; padding:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+              <div>
+                <div style="font-weight:800; margin-bottom:2px;">Agenda</div>
+                <div class="hint">Tus próximas sesiones confirmadas y pendientes.</div>
+              </div>
+
+              <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <a class="btn" href="{% url 'booking:booking' slug=trainer.slug %}">Abrir página de reservas</a>
+                <a class="btn btn-secondary" href="?tab=availability">Actualizar disponibilidad</a>
+              </div>
+            </div>
+
+            <div class="portal-divider" style="margin:14px 0;"></div>
+
+            {% if upcoming_reservations %}
+              {% regroup upcoming_reservations by timeslot.date as reservations_by_day %}
+
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                  <label style="font-weight:700;">Día</label>
+                  <select id="agendaDaySelect" style="min-width:220px;">
+                    <option value="all">Todos</option>
+                    {% for g in reservations_by_day %}
+                      <option value="{{ g.grouper|date:'Y-m-d' }}">{{ g.grouper|date:"D, M j, Y" }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="hint" id="agendaCount"></div>
+              </div>
+
+              <div class="portal-divider" style="margin:14px 0;"></div>
+
+              {% for g in reservations_by_day %}
+                <div class="agenda-day" data-day="{{ g.grouper|date:'Y-m-d' }}" style="margin-bottom:16px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                    <div style="font-weight:800;">{{ g.grouper|date:"D, M j, Y" }}</div>
+                    <div class="hint">{{ g.list|length }} sesión(es)</div>
+                  </div>
+
+                  <div style="overflow:auto; margin-top:10px;">
+                    <table style="width:100%; border-collapse:separate; border-spacing:0; min-width:760px;">
+                      <thead>
+                        <tr>
+                          <th style="text-align:left; padding:10px 12px; border-bottom:1px solid var(--border);">Hora</th>
+                          <th style="text-align:left; padding:10px 12px; border-bottom:1px solid var(--border);">Cliente</th>
+                          <th style="text-align:left; padding:10px 12px; border-bottom:1px solid var(--border);">Pago</th>
+                          <th style="text-align:left; padding:10px 12px; border-bottom:1px solid var(--border);">Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for r in g.list %}
+                          <tr>
+                            <td style="padding:10px 12px; border-bottom:1px solid var(--border); white-space:nowrap;">
+                              {{ r.timeslot.time|time:"g:i A" }}
+                            </td>
+                            <td style="padding:10px 12px; border-bottom:1px solid var(--border);">
+                              {% if r.client %}
+                                <div style="font-weight:700;">{{ r.client.name }}</div>
+                                <div class="hint" style="margin-top:2px;">{{ r.client.email }}</div>
+                              {% else %}
+                                <span class="hint">—</span>
+                              {% endif %}
+                            </td>
+                            <td style="padding:10px 12px; border-bottom:1px solid var(--border); white-space:nowrap;">
+                              {% if r.paid %}
+                                <span class="pill success">Pagado</span>
+                              {% else %}
+                                <span class="pill warn">No pagado</span>
+                              {% endif %}
+                              <span class="hint" style="margin-left:8px;">{{ r.payment_method }}</span>
+                            </td>
+                            <td style="padding:10px 12px; border-bottom:1px solid var(--border); white-space:nowrap;">
+                              {% if r.checkout and r.checkout.status %}
+                                {% if r.checkout.status == 'CONFIRMED' %}
+                                  <span class="pill success">Confirmada</span>
+                                {% elif r.checkout.status == 'PENDING' %}
+                                  <span class="pill warn">Pendiente</span>
+                                {% else %}
+                                  <span class="pill">{{ r.checkout.status|yesno:"Programada,Programada" }}</span>
+                                {% endif %}
+                              {% else %}
+                                <span class="pill">Programada</span>
+                              {% endif %}
+                            </td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              {% endfor %}
+
+              <script>
+                (function(){
+                  const select = document.getElementById('agendaDaySelect');
+                  const count = document.getElementById('agendaCount');
+                  if(!select) return;
+
+                  function apply(){
+                    const v = select.value;
+                    const blocks = Array.from(document.querySelectorAll('.agenda-day'));
+                    let shown = 0;
+                    blocks.forEach((b) => {
+                      const match = (v === 'all') || (b.getAttribute('data-day') === v);
+                      b.style.display = match ? 'block' : 'none';
+                      if(match){
+                        const n = b.querySelectorAll('tbody tr').length;
+                        shown += n;
+                      }
+                    });
+                  if(count) count.textContent = shown ? (shown + ' sesión(es)') : '';
+                  }
+
+                  select.addEventListener('change', apply);
+                  // Default: show first day (more useful than "All")
+                  const first = select.querySelector('option[value]:not([value="all"])');
+                  if(first){
+                    select.value = first.value;
+                  }
+                  apply();
+                })();
+              </script>
+
+            {% else %}
+              <div class="hint" style="max-width:820px;">
+                Aún no tienes sesiones próximas. Cuando los clientes reserven, las verás aquí.
+                <br>
+                Tip: comparte tu enlace de reservas (arriba en esta página).
+              </div>
+
+              <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+                <a class="btn btn-primary" href="{% url 'booking:booking' slug=trainer.slug %}">Ver página de reservas</a>
+                <a class="btn" href="{% url 'booking:trainer_list' %}">Ver listado público</a>
+              </div>
+
+              <div class="portal-divider" style="margin:14px 0;"></div>
+
+              <div class="hint">Próximamente: bloqueos (vacaciones), reprogramaciones y vista tipo calendario.</div>
+            {% endif %}
+          </section>
+
+        {% elif tab == 'clients' %}
+          <section class="acc" style="border:1px solid var(--border); border-radius:16px; padding:16px;">
+            <div style="font-weight:800; margin-bottom:6px;">Clientes</div>
+            <div class="hint">Próximamente: lista de clientes, historial de reservas y notas privadas.</div>
+          </section>
+
+        {% endif %}
+
+      </div>
+    {% endwith %}
+
+  {% else %}
+    <h2 style="margin:0 0 6px;">Trainer portal</h2>
+    <p class="hint" style="margin-top:0;">
+      Crea una cuenta o inicia sesión para gestionar tus reservas.
+    </p>
+
+    <div style="display:grid; gap:12px; margin-top:22px;">
+      <a class="btn btn-primary" href="{% url 'booking:trainer_register' %}">
+        Crear cuenta de trainer
+      </a>
+
+      <a class="btn" href="{% url 'login' %}?next={% url 'booking:trainer_portal' %}">Iniciar sesión</a>
+
+      <a class="btn" href="{% url 'booking:home_io' %}">Volver al inicio</a>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}
