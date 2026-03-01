@@ -1,0 +1,80 @@
+.client-portal{max-width:1180px;margin:28px auto;padding:28px}
+.client-portal-wide{width:min(1180px,92vw)}
+.client-portal-header{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.client-portal-title{margin:4px 0 6px 0;font-size:42px;line-height:1.1}
+.client-portal-actions{display:flex;gap:10px;flex-wrap:wrap}
+.client-section{margin:8px 0}
+.client-table-wrap{overflow:auto;margin-top:10px}
+.client-table{width:100%;border-collapse:separate;border-spacing:0;min-width:700px}
+.client-table th,.client-table td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border)}
+.client-actions{display:flex;gap:8px;flex-wrap:wrap}
+.client-policy-note{display:block;margin-top:4px}
+.client-form-panel{margin-top:12px;padding:12px;border:1px solid var(--border);border-radius:14px;background:var(--bg)}
+.client-field{display:grid;gap:6px}
+.client-field-label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.client-dependent-form{display:grid;grid-template-columns:1fr 1fr auto;gap:12px}
+.client-dependent-list{display:grid;gap:10px;margin-top:12px}
+.client-dependent-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--card)}
+.client-history-filters{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto auto;gap:12px;align-items:end}
+.client-field-wide{grid-column:span 1}
+.client-pagination{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:12px;flex-wrap:wrap}
+
+.client-history-filters input[type="text"],
+.client-history-filters input[type="date"],
+.client-history-filters select,
+.client-dependent-form input[type="text"]{
+  min-height: 48px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  width: 100%;
+}
+
+.client-history-filters input[name="history_from"],
+.client-history-filters input[name="history_to"]{
+  font-size: 17px;
+  color: var(--text);
+  border: 1px solid var(--fieldBorder) !important;
+  background: var(--fieldBg) !important;
+  box-shadow: var(--fieldShadow) !important;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.client-history-filters input[name="history_from"]::-webkit-datetime-edit,
+.client-history-filters input[name="history_to"]::-webkit-datetime-edit{
+  color: var(--text);
+}
+
+.client-history-filters input[name="history_from"]::-webkit-calendar-picker-indicator,
+.client-history-filters input[name="history_to"]::-webkit-calendar-picker-indicator{
+  opacity: .65;
+  cursor: pointer;
+}
+
+.client-history-filters input[name="history_from"]:focus,
+.client-history-filters input[name="history_to"]:focus,
+.client-history-filters input[name="history_from"]:focus-visible,
+.client-history-filters input[name="history_to"]:focus-visible{
+  border-color: var(--accent) !important;
+  box-shadow: var(--fieldShadow), 0 0 0 3px var(--accentSoft) !important;
+  outline: none !important;
+}
+
+.client-history-filters select{
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.client-dependent-form .btn{
+  min-height: 48px;
+  border-radius: 16px;
+}
+@media (max-width:860px){
+  .client-portal{padding:18px}
+  .client-portal-title{font-size:30px}
+  .client-dependent-form{grid-template-columns:1fr}
+  .client-history-filters{grid-template-columns:1fr}
+  .client-field-wide{grid-column:auto}
+  .client-pagination{justify-content:flex-start}
+}

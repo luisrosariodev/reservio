@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Dashboard de cliente · Reserv.io{% endblock %}
+
+{% block head %}
+  <link rel="stylesheet" href="{% static 'css/pages/client_dashboard.css' %}">
+{% endblock %}
+
+{% block main %}
+<div class="card client-portal client-portal-wide">
+  <div class="client-portal-header">
+    <div>
+      <div class="hint">Portal de cliente</div>
+      <h2 class="client-portal-title">{{ profile.full_name|default:request.user.email }}</h2>
+      <div class="hint">Gestiona tus reservas y revisa tu historial.</div>
+    </div>
+    <div class="client-portal-actions">
+      <a class="btn" href="{% url 'booking:trainer_list' %}">Reservar sesión</a>
+    </div>
+  </div>
+
+  <div class="portal-divider"></div>
+
+  <nav class="portal-tabs" aria-label="Secciones del portal de cliente">
+    <a class="portal-tab {% if active_tab == 'upcoming' %}active{% endif %}" href="?tab=upcoming">Próximas reservas</a>
+    <a class="portal-tab {% if active_tab == 'history' %}active{% endif %}" href="?tab=history">Historial</a>
+    <a class="portal-tab {% if active_tab == 'dependents' %}active{% endif %}" href="?tab=dependents">Dependientes</a>
+  </nav>
+
+  {% if active_tab == 'dependents' %}
+  <section class="client-section">
+    <div class="portal-head-title">Dependientes</div>
+    <div class="hint">Añade familiares o acompañantes para reservar por ellos desde el formulario de reservas.</div>
+
+    <div class="client-form-panel">
+      <form method="post" class="client-dependent-form" data-submit-lock data-submit-text="Guardando...">
+        {% csrf_token %}
+        <input type="hidden" name="form_name" value="add_dependent">
+        <div class="client-field">
+          <label class="client-field-label">Nombre completo</label>
+          <input type="text" name="dependent_full_name" placeholder="Ej: Ana López" required>
+        </div>
+        <div class="client-field">
+          <label class="client-field-label">Relación (opcional)</label>
+          <input type="text" name="dependent_relationship" placeholder="Ej: Hija, Pareja">
+        </div>
+        <button type="submit" class="btn">Añadir</button>
+      </form>
+    </div>
+
+    {% if dependents %}
+      <div class="client-dependent-list">
+        {% for dep in dependents %}
+          <div class="client-dependent-item">
+            <div>
+              <strong>{{ dep.full_name }}</strong>
+              {% if dep.relationship %}<span class="hint"> · {{ dep.relationship }}</span>{% endif %}
+            </div>
+            <form method="post" class="inline-form" data-submit-lock data-submit-text="Eliminando..." onsubmit="return window.confirm('¿Eliminar este dependiente?');">
+              {% csrf_token %}
+              <input type="hidden" name="form_name" value="remove_dependent">
+              <input type="hidden" name="dependent_id" value="{{ dep.id }}">
+              <button type="submit" class="btn btn-secondary btn-sm">Eliminar</button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="hint">Aún no tienes dependientes añadidos.</div>
+    {% endif %}
+  </section>
+
+  <div class="portal-divider"></div>
+  {% endif %}
+
+  {% if active_tab == 'upcoming' %}
+  <section class="client-section">
+    <div class="portal-head-title">Próximas reservas</div>
+    {% if upcoming_reservations %}
+      <div class="client-table-wrap">
+        <table class="client-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Hora</th>
+              <th>Entrenador</th>
+              <th>Asistente</th>
+              <th>Estado</th>
+              <th>Pago</th>
+              <th>Política</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in upcoming_reservations %}
+              <tr>
+                <td>{{ r.timeslot.date|date:"M j, Y" }}</td>
+                <td>{{ r.timeslot.time|time:"g:i A" }}</td>
+                <td>{{ r.trainer.business_name }}</td>
+                <td>{{ r.attendee_name|default:profile.full_name|default:request.user.email }}</td>
+                <td>
+                  {% if r.checkout and r.checkout.status == 'CONFIRMED' %}
+                    <span class="pill success">Confirmada</span>
+                  {% elif r.checkout and r.checkout.status == 'PENDING' %}
+                    <span class="pill warn">Pendiente</span>
+                  {% else %}
+                    <span class="pill">Programada</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if r.paid %}<span class="pill success">Pagado</span>{% else %}<span class="pill warn">Pendiente</span>{% endif %}
+                </td>
+                <td>
+                  {% if r.can_manage_now %}
+                    <span class="pill success">Cancelable</span>
+                    <span class="hint client-policy-note">hasta {{ r.cancel_deadline_at|date:"M j, g:i A" }}</span>
+                  {% else %}
+                    <span class="pill warn">No cancelable</span>
+                    {% if r.cancel_deadline_at %}
+                      <span class="hint client-policy-note">venció {{ r.cancel_deadline_at|date:"M j, g:i A" }}</span>
+                    {% endif %}
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="client-actions">
+                    <a class="btn btn-secondary btn-sm {% if not r.can_manage_now %}is-disabled-link{% endif %}" href="{% url 'booking:client_reschedule_reservation' r.id %}" {% if not r.can_manage_now %}aria-disabled="true" title="Fuera de ventana de reprogramación"{% endif %}>Reprogramar</a>
+                    <form
+                      method="post"
+                      action="{% url 'booking:client_cancel_reservation' r.id %}"
+                      class="inline-form"
+                      data-submit-lock
+                      data-submit-text="Cancelando..."
+                      onsubmit="return window.confirm('¿Cancelar esta reserva? Si aplica, se procesará reembolso según política del trainer.');"
+                    >
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-secondary btn-sm" {% if not r.can_manage_now %}disabled title="Fuera de ventana de cancelación"{% endif %}>Cancelar</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="hint">No tienes reservas próximas.</div>
+    {% endif %}
+  </section>
+
+  <div class="portal-divider"></div>
+  {% endif %}
+
+  {% if active_tab == 'history' %}
+  <section class="client-section">
+    <div class="portal-head-title">Historial</div>
+    <div class="hint">Resultados: {{ history_total_count }}</div>
+
+    <div class="client-form-panel">
+      <form method="get" class="client-history-filters">
+        <input type="hidden" name="tab" value="history">
+        <div class="client-field client-field-wide">
+          <label class="client-field-label">Buscar</label>
+          <input type="text" name="history_q" value="{{ history_q }}" placeholder="Entrenador o asistente">
+        </div>
+        <div class="client-field">
+          <label class="client-field-label">Pago</label>
+          <select name="history_payment">
+            <option value="all" {% if history_payment == 'all' %}selected{% endif %}>Todos</option>
+            <option value="paid" {% if history_payment == 'paid' %}selected{% endif %}>Pagados</option>
+            <option value="unpaid" {% if history_payment == 'unpaid' %}selected{% endif %}>No pagados</option>
+          </select>
+        </div>
+        <div class="client-field">
+          <label class="client-field-label">Orden</label>
+          <select name="history_sort">
+            <option value="newest" {% if history_sort == 'newest' %}selected{% endif %}>Más recientes</option>
+            <option value="oldest" {% if history_sort == 'oldest' %}selected{% endif %}>Más antiguas</option>
+          </select>
+        </div>
+        <div class="client-field">
+          <label class="client-field-label">Desde</label>
+          <input type="date" name="history_from" value="{{ history_from }}">
+        </div>
+        <div class="client-field">
+          <label class="client-field-label">Hasta</label>
+          <input type="date" name="history_to" value="{{ history_to }}">
+        </div>
+        <button type="submit" class="btn btn-secondary">Filtrar</button>
+        <a class="btn btn-secondary" href="?tab=history">Limpiar</a>
+      </form>
+    </div>
+
+    {% if past_reservations %}
+      <div class="client-table-wrap">
+        <table class="client-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Hora</th>
+              <th>Entrenador</th>
+              <th>Asistente</th>
+              <th>Pago</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in past_reservations %}
+              <tr>
+                <td>{{ r.timeslot.date|date:"M j, Y" }}</td>
+                <td>{{ r.timeslot.time|time:"g:i A" }}</td>
+                <td>{{ r.trainer.business_name }}</td>
+                <td>{{ r.attendee_name|default:profile.full_name|default:request.user.email }}</td>
+                <td>{% if r.paid %}Pagado{% else %}No pagado{% endif %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if history_page_obj and history_page_obj.paginator.num_pages > 1 %}
+        <div class="client-pagination">
+          {% if history_page_obj.has_previous %}
+            <a class="btn btn-secondary btn-sm" href="?{{ history_querystring }}&history_page={{ history_page_obj.previous_page_number }}">Anterior</a>
+          {% else %}
+            <span class="btn btn-secondary btn-sm" aria-disabled="true">Anterior</span>
+          {% endif %}
+
+          <span class="hint">Página {{ history_page_obj.number }} de {{ history_page_obj.paginator.num_pages }}</span>
+
+          {% if history_page_obj.has_next %}
+            <a class="btn btn-secondary btn-sm" href="?{{ history_querystring }}&history_page={{ history_page_obj.next_page_number }}">Siguiente</a>
+          {% else %}
+            <span class="btn btn-secondary btn-sm" aria-disabled="true">Siguiente</span>
+          {% endif %}
+        </div>
+      {% endif %}
+    {% else %}
+      <div class="hint">Aún no tienes reservas pasadas.</div>
+    {% endif %}
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

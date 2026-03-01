@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Cuenta eliminada · Reserv.io{% endblock %}
+
+{% block head %}
+  <link rel="stylesheet" href="{% static 'css/pages/auth.css' %}">
+{% endblock %}
+
+{% block main %}
+<div class="page-center">
+  <div class="card rio-auth-card rio-auth-card-sm rio-auth-center">
+    <h1 class="rio-auth-title">Cuenta eliminada</h1>
+    <p class="rio-auth-subtitle">Tu cuenta fue eliminada correctamente.</p>
+
+    <div class="rio-actions rio-actions-center">
+      <a class="btn btn-primary" href="{% url 'booking:home_io' %}">Volver al inicio</a>
+      <a class="btn btn-secondary" href="{% url 'booking:trainer_access' %}">Crear entrenador</a>
+      <a class="btn btn-secondary" href="{% url 'booking:client_portal_access' %}">Crear cliente</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

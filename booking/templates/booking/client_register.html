@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Crear cuenta de cliente · Reserv.io{% endblock %}
+
+{% block head %}
+  <link rel="stylesheet" href="{% static 'css/pages/auth.css' %}">
+{% endblock %}
+
+{% block main %}
+<div class="page-center">
+  <div class="card rio-auth-card">
+    <a class="link-back" href="{% url 'booking:client_portal_access' %}">← Volver a acceso de clientes</a>
+    <h1 class="rio-auth-title">Crea tu cuenta de cliente</h1>
+    <p class="rio-auth-subtitle">Guarda tus reservas y accede a tu dashboard personal.</p>
+
+    <form method="post" class="rio-form" data-submit-lock data-submit-text="Creando cuenta...">
+      {% csrf_token %}
+
+      <div class="rio-field">
+        <label class="rio-label" for="id_full_name">Nombre completo</label>
+        {{ form.full_name }}
+        {% for error in form.full_name.errors %}<div class="alert alert-error">{{ error }}</div>{% endfor %}
+      </div>
+
+      <div class="rio-field">
+        <label class="rio-label" for="id_email">Correo</label>
+        {{ form.email }}
+        {% for error in form.email.errors %}<div class="alert alert-error">{{ error }}</div>{% endfor %}
+      </div>
+
+      <div class="rio-field">
+        <label class="rio-label" for="id_phone">Teléfono (opcional)</label>
+        {{ form.phone }}
+        {% for error in form.phone.errors %}<div class="alert alert-error">{{ error }}</div>{% endfor %}
+      </div>
+
+      <div class="rio-field">
+        <label class="rio-label" for="id_password1">Contraseña</label>
+        {{ form.password1 }}
+        {% for error in form.password1.errors %}<div class="alert alert-error">{{ error }}</div>{% endfor %}
+      </div>
+
+      <div class="rio-field">
+        <label class="rio-label" for="id_password2">Confirmar contraseña</label>
+        {{ form.password2 }}
+        {% for error in form.password2.errors %}<div class="alert alert-error">{{ error }}</div>{% endfor %}
+      </div>
+
+      {% for error in form.non_field_errors %}<div class="alert alert-error">{{ error }}</div>{% endfor %}
+
+      <div class="rio-actions">
+        <button type="submit" class="btn btn-primary">Crear cuenta</button>
+        <a class="btn btn-secondary" href="{% url 'login' %}?next={% url 'booking:client_portal_dashboard' %}">Ya tengo cuenta</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

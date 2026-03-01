@@ -1,17 +1,35 @@
 {% extends "base.html" %}
-{% block title %}Trainer access · Reserv.io{% endblock %}
+{% load static %}
+{% block title %}Acceso de entrenadores · Reserv.io{% endblock %}
 
-{% block body %}
+{% block head %}
+  <link rel="stylesheet" href="{% static 'css/pages/auth.css' %}">
+{% endblock %}
+
+{% block main %}
 <div class="page-center">
-  <div class="card auth-card">
-    <a class="link-back" href="{% url 'booking:home_io' %}">← Back to home</a>
+  <div class="card rio-auth-card rio-auth-card-sm">
+    <a class="link-back" href="{% url 'booking:home_io' %}">← Volver al inicio</a>
+    <h1 class="rio-auth-title">Acceso de entrenadores</h1>
+    <p class="rio-auth-subtitle">Crea tu cuenta o inicia sesión para gestionar disponibilidad, agenda y pagos.</p>
 
-    <h1 class="auth-title">Trainer access</h1>
-    <p class="auth-hint">Create an account or sign in to manage availability and payouts.</p>
+    <div class="rio-access-actions">
+      {% if is_logged_in %}
+        {% if has_trainer %}
+          <a class="btn btn-primary" href="{% url 'booking:trainer_portal' %}">Ir a portal de entrenador</a>
+        {% else %}
+          <a class="btn btn-primary" href="{% url 'booking:account_role_management' %}">Activar perfil de entrenador</a>
+        {% endif %}
+        <a class="btn btn-secondary" href="{% url 'booking:account_portal_home' %}">Ir a mi portal</a>
+      {% else %}
+        <a class="btn btn-primary" href="{% url 'booking:trainer_register' %}">Crear cuenta de entrenador</a>
+        <a class="btn btn-secondary" href="{% url 'login' %}?next={% url 'booking:trainer_portal' %}">Iniciar sesión</a>
+      {% endif %}
+    </div>
 
-    <div style="display:grid; gap:12px; margin-top:18px;">
-      <a class="btn btn-primary" href="{% url 'booking:trainer_register' %}">Create account</a>
-      <a class="btn" href="/accounts/login/">Sign in</a>
+    <div class="rio-access-switch">
+      ¿Buscas tus reservas como cliente?
+      <a class="link" href="{% url 'booking:client_portal_access' %}">Ir a acceso de clientes</a>
     </div>
   </div>
 </div>

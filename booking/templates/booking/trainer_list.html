@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Reserv.io – Trainers{% endblock %}
+{% block title %}Reserv.io – Entrenadores{% endblock %}
 
 {% block body %}
 <div style="max-width: 1100px; margin: 0 auto; padding: 32px;">
@@ -16,9 +16,9 @@
     }
   </style>
 
-  <h1 style="margin:0;">Available trainers</h1>
+  <h1 style="margin:0;">Entrenadores disponibles</h1>
   <p class="hint" style="margin-top:8px;">
-    Choose a trainer and book your sessions.
+    Elige un entrenador y reserva tus sesiones.
   </p>
 
   <div style="
@@ -48,12 +48,12 @@
               </div>
             {% endif %}
             {% if trainer.price_per_session %}
-              <div class="pill" style="width:fit-content;">${{ trainer.price_per_session }} / session</div>
+              <div class="pill" style="width:fit-content;">${{ trainer.price_per_session }} / sesión</div>
             {% endif %}
           </div>
 
           <div class="hint">
-            {{ trainer.description|default:"Personal trainer" }}
+            {{ trainer.description|default:"Entrenador personal" }}
           </div>
 
           <div style="margin-top:auto; padding-top:10px;">
@@ -61,13 +61,13 @@
               class="btn btn-primary"
               style="align-self:flex-start; padding-left:20px; padding-right:20px;"
             >
-              View availability
+              Ver disponibilidad
             </div>
           </div>
         </div>
       </a>
     {% empty %}
-      <p class="hint">No trainers available.</p>
+      <p class="hint">No hay entrenadores disponibles.</p>
     {% endfor %}
   </div>
 

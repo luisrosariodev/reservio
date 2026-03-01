@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Trainer Dashboard – Reserv.io{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:760px; margin:0 auto; padding:28px;">
+  <h2 style="margin:0;">Trainer dashboard</h2>
+  <p class="hint" style="margin:6px 0 18px;">
+    Manage your profile and bookings.
+  </p>
+
+  <div style="display:grid; gap:12px;">
+    <div class="card" style="padding:16px;">
+      <div class="hint" style="margin-bottom:6px;">Profile</div>
+      <div style="font-weight:700; font-size:1.1rem;">{{ trainer.business_name }}</div>
+      <div class="hint" style="margin-top:6px;">
+        Public booking link:
+        <code>/t/{{ trainer.slug }}/book/</code>
+      </div>
+    </div>
+
+    <div class="card" style="padding:16px;">
+      <div class="hint" style="margin-bottom:6px;">Payments</div>
+      {% if trainer.stripe_onboarded %}
+        <div style="font-weight:700;">Stripe: Connected ✅</div>
+      {% else %}
+        <div style="font-weight:700;">Stripe: Not connected</div>
+        <p class="hint" style="margin:8px 0 0;">
+          Next: we’ll add a “Connect Stripe” button here.
+        </p>
+      {% endif %}
+    </div>
+
+    <div class="card" style="padding:16px;">
+      <div class="hint" style="margin-bottom:6px;">Account</div>
+      <a class="btn" href="/accounts/logout/">Sign out</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

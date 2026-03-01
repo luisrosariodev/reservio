@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Acceso de clientes · Reserv.io{% endblock %}
+
+{% block head %}
+  <link rel="stylesheet" href="{% static 'css/pages/auth.css' %}">
+{% endblock %}
+
+{% block main %}
+<div class="page-center">
+  <div class="card rio-auth-card rio-auth-card-sm">
+    <a class="link-back" href="{% url 'booking:home_io' %}">← Volver al inicio</a>
+    <h1 class="rio-auth-title">Acceso de clientes</h1>
+    <p class="rio-auth-subtitle">Crea tu cuenta o inicia sesión para gestionar reservas y cambios de horario.</p>
+
+    <div class="rio-access-actions">
+      {% if is_logged_in %}
+        {% if has_client %}
+          <a class="btn btn-primary" href="{% url 'booking:client_portal_dashboard' %}">Ir a portal de cliente</a>
+        {% else %}
+          <a class="btn btn-primary" href="{% url 'booking:account_role_management' %}">Activar perfil de cliente</a>
+        {% endif %}
+        <a class="btn btn-secondary" href="{% url 'booking:account_portal_home' %}">Ir a mi portal</a>
+      {% else %}
+        <a class="btn btn-primary" href="{% url 'booking:client_portal_register' %}">Crear cuenta de cliente</a>
+        <a class="btn btn-secondary" href="{% url 'login' %}?next={% url 'booking:client_portal_dashboard' %}">Iniciar sesión</a>
+      {% endif %}
+    </div>
+
+    <div class="rio-access-switch">
+      ¿Eres entrenador?
+      <a class="link" href="{% url 'booking:trainer_access' %}">Ir a acceso de entrenadores</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

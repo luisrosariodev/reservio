@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Reprogramar reserva · Reserv.io{% endblock %}
+
+{% block head %}
+  <link rel="stylesheet" href="{% static 'css/pages/client_reschedule.css' %}">
+{% endblock %}
+
+{% block main %}
+<div class="page-center">
+  <div class="card client-reschedule-card">
+    <a class="link-back" href="{% url 'booking:client_portal_dashboard' %}?tab=upcoming">← Volver a mis próximas reservas</a>
+
+    <h1 class="client-reschedule-title">Reprogramar reserva</h1>
+    <p class="hint client-reschedule-hint">
+      Reserva actual: <strong>{{ reservation.trainer.business_name }}</strong> ·
+      {{ reservation.timeslot.date|date:"M j, Y" }} {{ reservation.timeslot.time|time:"g:i A" }}
+    </p>
+
+    {% if available_slots %}
+      <form method="post" class="rio-form" data-submit-lock data-submit-text="Reprogramando...">
+        {% csrf_token %}
+
+        <div class="rio-field">
+          <label class="rio-label" for="id_target_timeslot_id">Nuevo horario</label>
+          <select id="id_target_timeslot_id" name="target_timeslot_id" class="ui-input" required>
+            <option value="">Selecciona un horario</option>
+            {% for slot in available_slots %}
+              <option value="{{ slot.id }}">
+                {{ slot.date|date:"D, M j, Y" }} · {{ slot.time|time:"g:i A" }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="client-reschedule-actions">
+          <a class="btn btn-secondary" href="{% url 'booking:client_portal_dashboard' %}?tab=upcoming">Cancelar</a>
+          <button type="submit" class="btn btn-primary">Guardar cambio</button>
+        </div>
+      </form>
+    {% else %}
+      <div class="alert alert-info">No hay horarios disponibles para reprogramar con este entrenador.</div>
+      <a class="btn" href="{% url 'booking:client_portal_dashboard' %}?tab=upcoming">Volver</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,267 +1,10 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Reserv.io – Reserva tu sesión{% endblock %}
 
 {% block head %}
-<style>
-
-    .booking-card {
-      width: 100%;
-      max-width: 870px;
-      background: var(--card);
-      border-radius: 24px;
-      padding: 26px 28px 30px;
-      box-shadow: var(--shadow);
-      border: 1px solid var(--border);
-      backdrop-filter: blur(20px);
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: flex-start;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 24px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--text);
-    }
-
-    .tagline {
-      font-size: 13px;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-
-    .trainer-name {
-      font-size: 18px;
-      font-weight: 600;
-      margin-top: 14px;
-      color: var(--text);
-    }
-
-    .booking-pill {
-      font-size: 12px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      color: var(--muted);
-      white-space: nowrap;
-      text-align: right;
-      background: var(--bg2);
-    }
-
-    .booking-pill.is-active {
-      border-color: #6366f1;
-      color: var(--text);
-    }
-
-    .section-title {
-      margin-top: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--muted);
-    }
-
-    .field {
-      margin-top: 10px;
-    }
-
-    label {
-      display: block;
-      font-size: 13px;
-      margin-bottom: 4px;
-      color: var(--muted);
-    }
-
-    input[type="text"],
-    input[type="email"] {
-      width: 100%;
-      padding: 9px 11px;
-      border-radius: 11px;
-      border: 1px solid var(--inputBorder, var(--border));
-      background: var(--input, var(--bg2));
-      color: var(--text);
-      font-size: 14px;
-      outline: none;
-    }
-
-    input[type="text"]:focus,
-    input[type="email"]:focus {
-      border-color: #6366f1;
-      box-shadow: 0 0 0 1px rgba(99,102,241,0.5);
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.2fr);
-      gap: 24px;
-      margin-top: 18px;
-    }
-
-    /* semana */
-    .week-grid {
-      display: grid;
-      grid-template-columns: repeat(7, minmax(0, 1fr));
-      gap: 6px;
-      margin-top: 10px;
-    }
-
-    .day-btn {
-      border-radius: 14px;
-      padding: 8px 4px;
-      border: 1px solid var(--border);
-      background: var(--card);
-      text-align: center;
-      font-size: 11px;
-      cursor: pointer;
-      transition: all 0.12s ease;
-      color: var(--muted);
-    }
-
-    .day-btn span {
-      display: block;
-    }
-
-    .day-name {
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      font-size: 10px;
-    }
-
-    .day-date {
-      font-size: 13px;
-      margin-top: 4px;
-    }
-
-    .day-btn.has-slots {
-      border-color: rgba(96,165,250,0.6);
-    }
-
-    .day-btn.active {
-      background: radial-gradient(circle at top, rgba(79,70,229,0.7), #020617);
-      border-color: #6366f1;
-      color: #e5e7eb;
-      box-shadow: 0 0 0 1px rgba(129,140,248,0.85);
-    }
-
-    .slots-container {
-      margin-top: 14px;
-    }
-
-    .current-day-label {
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-
-    .current-day-label span {
-      font-weight: 600;
-      color: var(--text);
-    }
-
-    .slots-day {
-      display: none;
-      max-height: 230px;
-      overflow-y: auto;
-      padding-right: 4px;
-    }
-
-    .slot-item {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      padding: 8px 10px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: var(--card);
-      margin-bottom: 7px;
-      font-size: 13px;
-      cursor: pointer;
-    }
-
-    .slot-item input[type="checkbox"] {
-      width: 16px;
-      height: 16px;
-      accent-color: #6366f1;
-      flex-shrink: 0;
-    }
-
-    .slot-main {
-      flex: 1;
-    }
-
-    .slot-time {
-      font-weight: 500;
-    }
-
-    .slot-meta {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .empty {
-      font-size: 13px;
-      color: var(--muted);
-      margin-top: 6px;
-    }
-    .slots-day .empty { display: none; }
-
-    .price-box {
-      margin-top: 10px;
-      padding: 10px 12px;
-      border-radius: 14px;
-      border: 1px solid var(--border);
-      background: var(--card);
-      font-size: 13px;
-    }
-
-    .cta-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 18px;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-
-    button[type="submit"] {
-      border: none;
-      cursor: pointer;
-      background: linear-gradient(135deg, #4f46e5, #6366f1, #ec4899);
-      color: white;
-      padding: 9px 18px;
-      border-radius: 999px;
-      font-size: 14px;
-      font-weight: 500;
-      box-shadow: 0 16px 40px rgba(79,70,229,0.6);
-      transition: transform 0.08s ease, box-shadow 0.08s ease;
-      white-space: nowrap;
-    }
-
-    button[type="submit"]:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 20px 48px rgba(79,70,229,0.75);
-    }
-
-    .error {
-      margin-top: 12px;
-      font-size: 13px;
-      color: var(--text);
-      background: rgba(239, 68, 68, 0.10);
-      border-radius: 12px;
-      padding: 10px 12px;
-      border: 1px solid rgba(239, 68, 68, 0.35);
-    }
-  </style>
+  <link rel="stylesheet" href="{% static 'css/pages/booking_form.css' %}">
 {% endblock %}
 
 {% block body %}
@@ -269,9 +12,13 @@
     <div class="card-header">
       <div>
         <h1>Reserv.io</h1>
-        <div class="tagline">Your Booking Assistant</div>
-        <div style="margin-top:6px;">
-          <a href="/trainers/" style="color:var(--muted); text-decoration:none; font-size:12px;">← Volver a trainers</a>
+        <div class="tagline">Tu asistente de reservas</div>
+        <div class="booking-back-row">
+          {% if request.user.is_authenticated and trainer.user_id == request.user.id %}
+            <a href="{% url 'booking:trainer_portal' %}?tab=agenda" class="booking-back-link">← Volver al portal</a>
+          {% else %}
+            <a href="/trainers/" class="booking-back-link">← Volver a entrenadores</a>
+          {% endif %}
         </div>
         <div class="trainer-name">{{ trainer.business_name }}</div>
       </div>
@@ -280,16 +27,17 @@
       </div>
     </div>
 
-    <div class="error" id="booking-error" {% if not error_message %}style="display:none;"{% endif %}>
+    <div class="error {% if not error_message %}is-hidden{% endif %}" id="booking-error">
       {{ error_message|default:"" }}
     </div>
     {% if messages %}
       {% for message in messages %}
-        <div class="error" style="margin-top:12px;">
+        <div class="error">
           {{ message }}
         </div>
       {% endfor %}
     {% endif %}
+
     <form method="post" action="{% url 'booking:checkout' trainer.slug %}?week={{ week_param|default:'current' }}">
       {% csrf_token %}
 
@@ -297,6 +45,9 @@
         <!-- Columna izquierda: datos personales -->
         <div>
           <div class="section-title">Información personal</div>
+          {% if client_identity_locked %}
+            <div class="hint">Datos cargados desde tu cuenta de cliente.</div>
+          {% endif %}
 
           <div class="field">
             <label>Nombre:</label>
@@ -304,6 +55,7 @@
               type="text"
               name="name"
               value="{{ form_data.name|default_if_none:'' }}"
+              {% if client_identity_locked %}readonly{% endif %}
               required>
           </div>
 
@@ -313,6 +65,7 @@
               type="email"
               name="email"
               value="{{ form_data.email|default_if_none:'' }}"
+              {% if client_identity_locked %}readonly{% endif %}
               required>
           </div>
 
@@ -324,24 +77,33 @@
               value="{{ form_data.phone|default_if_none:'' }}">
           </div>
 
-          <div class="section-title" style="margin-top: 18px;">Método de pago</div>
+          <div class="field">
+            <label>Código de descuento (opcional):</label>
+            <input
+              type="text"
+              name="coupon_code"
+              value="{{ form_data.coupon_code|default_if_none:'' }}"
+              placeholder="Ej: VERANO10">
+          </div>
 
-          <div class="field" style="margin-top: 10px;">
-            <label style="display:block; margin-bottom: 8px;">Selecciona cómo vas a pagar:</label>
+          <div class="section-title section-title-compact">Método de pago</div>
 
-            <label style="display:block; margin-bottom: 8px; cursor: pointer;">
+          <div class="field field-compact">
+            <label class="payment-label">Selecciona cómo vas a pagar:</label>
+
+            <label class="payment-option">
               <input type="radio" name="payment_method" value="STRIPE"
                 {% if form_data.payment_method != "ATH" %}checked{% endif %}>
               Stripe (Tarjeta)
             </label>
 
-            <label style="display:block; cursor: pointer;">
+            <label class="payment-option payment-option-last">
               <input type="radio" name="payment_method" value="ATH"
                 {% if form_data.payment_method == "ATH" %}checked{% endif %}>
               ATH Móvil
             </label>
 
-            <div class="hint" style="margin-top: 8px;">
+            <div class="hint payment-hint">
               Stripe confirma automáticamente. ATH Móvil requiere confirmación manual.
             </div>
           </div>
@@ -350,6 +112,9 @@
             Selecciona un día del calendario (domingo a sábado) y luego elige
             uno o varios horarios para ese día. Puedes seleccionar horarios
             de varios días de la semana en la misma reserva.
+            {% if is_client_session %}
+              <br><br>Si tienes dependientes, puedes marcar para quién es cada horario.
+            {% endif %}
           </div>
         </div>
 
@@ -357,30 +122,28 @@
         <div>
           <div class="section-title">Semana (domingo a sábado)</div>
 
-          <div class="cta-row" style="margin-top: 10px;">
-            <div class="booking-pill" style="text-align:left;">
+          <div class="cta-row cta-row-top">
+            <div class="booking-pill booking-pill-left">
               {{ week_range_label|default:"" }}
             </div>
 
-            <div style="display:flex; gap:8px;">
+            <div class="week-switch">
               <a
                 href="?week=current"
-                class="booking-pill {% if week_param == 'current' %}is-active{% endif %}"
-                style="text-decoration:none;"
+                class="booking-pill booking-pill-link {% if week_param == 'current' %}is-active{% endif %}"
               >
                 Esta semana
               </a>
               <a
                 href="?week=next"
-                class="booking-pill {% if week_param == 'next' %}is-active{% endif %}"
-                style="text-decoration:none;"
+                class="booking-pill booking-pill-link {% if week_param == 'next' %}is-active{% endif %}"
               >
                 Próxima
               </a>
             </div>
           </div>
 
-          <div class="tagline" style="margin-top: 8px;">
+          <div class="tagline tagline-top-space">
             Solo puedes navegar entre esta semana y la próxima.
           </div>
 
@@ -408,6 +171,27 @@
 
           <!-- contenedor de horarios -->
           <div class="slots-container">
+            {% if is_client_session and booking_dependents %}
+              <div class="bulk-attendees" data-role="bulk-attendees">
+                <div class="bulk-attendees-head">
+                  <div class="bulk-attendees-title">Aplicar asistentes a todos los horarios</div>
+                  <button type="button" class="btn btn-secondary btn-sm" id="applyBulkAttendeesBtn">Aplicar selección</button>
+                </div>
+                <div class="bulk-attendees-list">
+                  <label class="slot-attendee-opt">
+                    <input type="checkbox" value="self" checked data-role="bulk-attendee">
+                    <span>Yo</span>
+                  </label>
+                  {% for dep in booking_dependents %}
+                    <label class="slot-attendee-opt">
+                      <input type="checkbox" value="dep:{{ dep.id }}" data-role="bulk-attendee">
+                      <span>{{ dep.full_name }}</span>
+                    </label>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+
             <div class="current-day-label">
               Horarios para: <span data-role="current-day-label"></span>
             </div>
@@ -421,22 +205,39 @@
                 >
                   {% for slot in timeslots %}
                     {% if slot.date == day %}
-                      <label class="slot-item">
-                        <input
-                          type="checkbox"
-                          name="timeslot_ids"
-                          value="{{ slot.id }}"
-                          {% if form_data.timeslot_ids and slot.id|stringformat:"s" in form_data.timeslot_ids %}checked{% endif %}
-                        >
-                        <div class="slot-main">
-                          <div class="slot-time">
-                            {{ slot.time|time:"g:i A" }} - {{ slot.end_datetime|time:"g:i A" }}
+                      <div class="slot-item">
+                        <label class="slot-main-toggle">
+                          <input
+                            type="checkbox"
+                            name="timeslot_ids"
+                            value="{{ slot.id }}"
+                            {% if form_data.timeslot_ids and slot.id|stringformat:"s" in form_data.timeslot_ids %}checked{% endif %}
+                          >
+                          <div class="slot-main">
+                            <div class="slot-time">
+                              {{ slot.time|time:"g:i A" }} - {{ slot.end_datetime|time:"g:i A" }}
+                            </div>
+                            <div class="slot-meta">
+                              {{ slot.spaces_left }} espacios disponibles
+                            </div>
                           </div>
-                          <div class="slot-meta">
-                            {{ slot.spaces_left }} espacios disponibles
+                        </label>
+                        {% if is_client_session %}
+                          <div class="slot-attendees">
+                            <div class="slot-attendees-title">Reserva para:</div>
+                            <label class="slot-attendee-opt">
+                              <input type="checkbox" name="attendees_{{ slot.id }}" value="self" checked>
+                              <span>Yo</span>
+                            </label>
+                            {% for dep in booking_dependents %}
+                              <label class="slot-attendee-opt">
+                                <input type="checkbox" name="attendees_{{ slot.id }}" value="dep:{{ dep.id }}">
+                                <span>{{ dep.full_name }}</span>
+                              </label>
+                            {% endfor %}
                           </div>
-                        </div>
-                      </label>
+                        {% endif %}
+                      </div>
                     {% endif %}
                   {% endfor %}
                   <p class="empty" data-role="empty-day">No hay horarios para este día.</p>
@@ -454,114 +255,14 @@
           Puedes combinar horarios de varios días. El total se calcula
           según la cantidad de sesiones.
         </div>
-        <button type="submit" {% if not timeslots %}disabled style="opacity:0.5; cursor:not-allowed;"{% endif %}>
+        <button type="submit" {% if not timeslots %}disabled class="is-disabled"{% endif %}>
           Reservar sesiones
         </button>
       </div>
     </form>
   </div>
+{% endblock %}
 
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const dayButtons = document.querySelectorAll("[data-role='day-button']");
-      const dayBlocks  = document.querySelectorAll("[data-role='slots-day']");
-      const dayLabelEl = document.querySelector("[data-role='current-day-label']");
-
-      if (!dayButtons.length || !dayBlocks.length) {
-        return; // nada que hacer
-      }
-
-      function selectDay(dateStr, labelText) {
-        // marcar botón activo
-        dayButtons.forEach(btn => {
-          if (btn.getAttribute("data-date") === dateStr) {
-            btn.classList.add("active");
-          } else {
-            btn.classList.remove("active");
-          }
-        });
-
-        // mostrar solo los horarios de ese día
-        dayBlocks.forEach(block => {
-          const d = block.getAttribute("data-date");
-          block.style.display = (d === dateStr) ? "block" : "none";
-        });
-
-        // mostrar mensaje vacío si el día no tiene slots
-        dayBlocks.forEach(block => {
-          if (block.getAttribute("data-date") === dateStr) {
-            const hasSlots = block.querySelectorAll(".slot-item").length > 0;
-            const emptyEl = block.querySelector("[data-role='empty-day']");
-            if (emptyEl) {
-              emptyEl.style.display = hasSlots ? "none" : "block";
-            }
-          }
-        });
-
-        if (dayLabelEl) {
-          dayLabelEl.textContent = labelText || dateStr;
-        }
-      }
-
-      // día inicial: el primero que tenga horarios (si existe), si no, el primero de la semana
-      const firstWithSlots = Array.from(dayButtons).find(btn => btn.classList.contains("has-slots"));
-      const initialBtn = firstWithSlots || dayButtons[0];
-
-      if (initialBtn) {
-        const initialDate  = initialBtn.getAttribute("data-date");
-        const initialLabel = initialBtn.getAttribute("data-day-label");
-        selectDay(initialDate, initialLabel);
-      }
-
-      // clicks
-      dayButtons.forEach(btn => {
-        btn.addEventListener("click", function () {
-          const dateStr  = this.getAttribute("data-date");
-          const labelTxt = this.getAttribute("data-day-label");
-          selectDay(dateStr, labelTxt);
-        });
-      });
-
-      // Prevent submit with zero selected timeslots (otherwise server will re-render)
-      const formEl = document.querySelector("form");
-      const errorEl = document.getElementById("booking-error");
-
-      function showInlineError(message) {
-        if (errorEl) {
-          errorEl.textContent = message;
-          errorEl.style.display = "block";
-          errorEl.scrollIntoView({ behavior: "smooth", block: "center" });
-          return;
-        }
-        // fallback: create an error box under header
-        const header = document.querySelector(".card-header");
-        if (header) {
-          const box = document.createElement("div");
-          box.className = "error";
-          box.id = "booking-error";
-          box.textContent = message;
-          header.insertAdjacentElement("afterend", box);
-          box.scrollIntoView({ behavior: "smooth", block: "center" });
-        } else {
-          alert(message);
-        }
-      }
-
-      if (formEl) {
-        formEl.addEventListener("submit", function (e) {
-          const checked = document.querySelectorAll("input[name='timeslot_ids']:checked");
-          if (!checked.length) {
-            e.preventDefault();
-            showInlineError("Selecciona al menos un horario para continuar.");
-          }
-        });
-      }
-    });
-
-    // Auto-scroll to error (if present)
-    const err = document.getElementById("booking-error");
-    if (err) {
-      err.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  </script>
+{% block scripts %}
+  <script src="{% static 'js/pages/booking_form.js' %}" defer></script>
 {% endblock %}

@@ -119,7 +119,7 @@
 {% block body %}
   <div class="success-card">
     <h1>Reserv.io</h1>
-    <div class="tagline">Your Booking Assistant</div>
+    <div class="tagline">Tu asistente de reservas</div>
 
     <div class="section-title">
       {% if payment_method == "ATH" %}
@@ -134,7 +134,7 @@
     </div>
 
     <div class="summary">
-      <p><strong>Trainer:</strong> {{ trainer.business_name }}</p>
+      <p><strong>Entrenador:</strong> {{ trainer.business_name }}</p>
       <p><strong>Cliente:</strong> {{ client.name }} · {{ client.email }}</p>
       <p><strong>Método de pago:</strong>
         {% if payment_method == "ATH" %}ATH Móvil{% else %}Stripe (Tarjeta){% endif %}
@@ -147,13 +147,13 @@
             <li>Abre ATH Móvil y realiza el pago.</li>
             <li>Envía el monto exacto: <strong>{{ total_amount }} {{ trainer.currency }}</strong>.</li>
             <li>En la nota incluye una referencia (las verás abajo).</li>
-            <li>Luego de recibido, el trainer confirmará la reserva.</li>
+            <li>Luego de recibido, el entrenador confirmará la reserva.</li>
           </ol>
         </div>
       {% else %}
         {% if checkout and checkout.status == "CONFIRMED" %}
           <div class="success-pill">Estado: Confirmada (Stripe)</div>
-          <div class="hint">Pago confirmado. Recibirás confirmación por email. Si necesitas cambiar tu reserva, contacta al trainer.</div>
+          <div class="hint">Pago confirmado. Recibirás confirmación por email. Si necesitas cambiar tu reserva, contacta al entrenador.</div>
         {% else %}
           <div class="success-pill">Estado: Pendiente (Stripe)</div>
           <div class="hint">Tu pago aún no se ha confirmado. Si ya pagaste, refresca esta página en unos segundos. Si cancelaste el pago, vuelve a reservar.</div>
@@ -168,6 +168,7 @@
         <tr>
           <th>Fecha</th>
           <th>Hora</th>
+          <th>Asistente</th>
           <th>Referencia</th>
           <th>Monto (sesión)</th>
         </tr>
@@ -177,6 +178,7 @@
           <tr>
             <td>{{ r.timeslot.date|date:"d/m/Y" }}</td>
             <td>{{ r.timeslot.time|time:"H:i" }} – {{ r.timeslot.end_datetime|time:"H:i" }}</td>
+            <td>{{ r.attendee_name|default:client.name }}</td>
             <td>{{ r.reference_code }}</td>
             <td>{{ r.amount_due }} {{ trainer.currency }}</td>
           </tr>
@@ -218,7 +220,7 @@
     {% endif %}
 
     <div class="actions">
-      <a class="btn btn-primary" href="{% url 'booking:home_io' %}">Volver al inicio</a>
+      <a class="btn btn-primary" href="{{ return_url|default_if_none:''|default:request.path }}">{{ return_label|default:"Volver al inicio" }}</a>
       <a class="btn" href="javascript:window.print()">Imprimir / Guardar</a>
     </div>
   </div>

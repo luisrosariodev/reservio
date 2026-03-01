@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Selecciona modo · Reserv.io{% endblock %}
+
+{% block head %}
+  <link rel="stylesheet" href="{% static 'css/pages/auth.css' %}">
+{% endblock %}
+
+{% block main %}
+<div class="page-center">
+  <div class="card rio-auth-card rio-auth-card-sm">
+    <h1 class="rio-auth-title">¿Cómo deseas entrar?</h1>
+    <p class="rio-auth-subtitle">Tu cuenta tiene ambos perfiles. Elige modo de trabajo.</p>
+
+    <form method="post" class="rio-form" data-submit-lock data-submit-text="Abriendo...">
+      {% csrf_token %}
+      <div class="rio-actions rio-actions-inline">
+        <button type="submit" name="mode" value="trainer" class="btn btn-primary">Entrar como trainer</button>
+        <button type="submit" name="mode" value="client" class="btn">Entrar como cliente</button>
+      </div>
+    </form>
+
+    <div class="hint">
+      Puedes cambiar este modo luego desde <strong>Mi panel</strong>.
+    </div>
+  </div>
+</div>
+{% endblock %}

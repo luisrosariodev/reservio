@@ -1,0 +1,72 @@
+{% extends "admin/change_list.html" %}
+
+{% block content_title %}
+  {{ block.super }}
+  {% if admin_kpis %}
+    <style>
+      .kpi-grid {
+        margin: 14px 0 18px;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .kpi-card {
+        border: 1px solid #d9dde3;
+        border-radius: 10px;
+        background: #f7f8fa;
+        padding: 12px;
+      }
+      .kpi-link {
+        display: block;
+        text-decoration: none;
+      }
+      .kpi-link:hover .kpi-card {
+        border-color: #b9c4d3;
+        background: #eef2f7;
+      }
+      .kpi-label {
+        font-size: 12px;
+        color: #5b6574;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        font-weight: 600;
+      }
+      .kpi-value {
+        margin-top: 6px;
+        font-size: 28px;
+        line-height: 1;
+        font-weight: 700;
+        color: #111827;
+      }
+      @media (max-width: 900px) {
+        .kpi-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+    <div class="kpi-grid">
+      <a class="kpi-link" href="{% url 'admin:booking_trainer_changelist' %}?is_approved__exact=0">
+        <div class="kpi-card">
+          <div class="kpi-label">Pendientes de aprobación</div>
+          <div class="kpi-value">{{ admin_kpis.trainers_pending_approval }}</div>
+        </div>
+      </a>
+      <a class="kpi-link" href="{% url 'admin:booking_checkout_changelist' %}?status__exact=PENDING">
+        <div class="kpi-card">
+          <div class="kpi-label">Checkouts pendientes</div>
+          <div class="kpi-value">{{ admin_kpis.checkouts_pending }}</div>
+        </div>
+      </a>
+      <a class="kpi-link" href="{% url 'admin:booking_reservation_changelist' %}?paid__exact=0">
+        <div class="kpi-card">
+          <div class="kpi-label">Reservas sin pagar</div>
+          <div class="kpi-value">{{ admin_kpis.reservations_unpaid }}</div>
+        </div>
+      </a>
+      <a class="kpi-link" href="{% url 'admin:booking_finance_dashboard' %}">
+        <div class="kpi-card">
+          <div class="kpi-label">Finanzas</div>
+          <div class="kpi-value">Abrir</div>
+        </div>
+      </a>
+    </div>
+  {% endif %}
+{% endblock %}

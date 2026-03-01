@@ -1,20 +1,36 @@
-# booking/middleware.py
 from django.contrib.auth import logout
+
 
 class TrainerPortalLogoutMiddleware:
     """
-    If a trainer is in 'trainer portal mode' and navigates outside allowed paths,
-    log them out automatically.
+    Enforce "portal session only":
+    if an authenticated user leaves portal/account routes, end session.
     """
 
-    # Rutas permitidas cuando estás en modo portal
-    ALLOWED_PREFIXES = (
-        "/trainer/",          # portal y todo lo que cuelga de ahí
-        "/accounts/logout/",  # logout endpoint (por si acaso)
-        "/admin/",            # opcional: si quieres permitir admin (puedes quitarlo)
+    # Rutas consideradas "dentro del portal" (no hacen logout)
+    PORTAL_PREFIXES = (
+        "/trainer/",           # portal entrenador
+        "/clients/",           # portal cliente
+        "/portal/",            # resolver portal home
+        "/account/",           # gestión de roles/cuenta
+        "/trainers/",          # listado de entrenadores
+        "/t/",                 # booking form público de trainer
+        "/success/",           # booking success/receipt
+        "/accounts/password_", # cambio de contraseña dentro de cuenta
+        "/accounts/reset/",    # reset confirm/complete
+        "/accounts/logout/",   # endpoint de logout
+        "/admin/",             # opcional
     )
 
-    # Rutas que NO deben causar logout aunque no sean portal (estáticos, etc.)
+    # Rutas exactas públicas/auth permitidas
+    PORTAL_EXACT_PATHS = {
+        "/accounts/login/",
+        "/accounts/2fa/verify/",
+        "/accounts/password_reset/",
+        "/accounts/password_reset/done/",
+    }
+
+    # Rutas técnicas que nunca deben disparar logout
     SAFE_PREFIXES = (
         "/static/",
         "/media/",
@@ -37,18 +53,23 @@ class TrainerPortalLogoutMiddleware:
         if not user or not user.is_authenticated:
             return self.get_response(request)
 
-        # Si el usuario entra al portal, activamos modo portal
-        if path.startswith("/trainer/"):
+        def _is_allowed(p):
+            if p in self.PORTAL_EXACT_PATHS:
+                return True
+            return p.startswith(self.PORTAL_PREFIXES)
+
+        # Marca modo portal al entrar en cualquier ruta permitida.
+        if _is_allowed(path):
             request.session["trainer_portal_mode"] = True
             return self.get_response(request)
 
-        # Si no está en modo portal, no hacemos nada
+        # Si no está marcado como sesión de portal, no forzamos logout.
         if not request.session.get("trainer_portal_mode"):
             return self.get_response(request)
 
-        # Si está en modo portal y sale a una ruta no permitida → logout
-        if not path.startswith(self.ALLOWED_PREFIXES):
-            logout(request)
+        # En modo portal: salir a una ruta no-portal => cerrar sesión.
+        if not _is_allowed(path):
             request.session.pop("trainer_portal_mode", None)
+            logout(request)
 
         return self.get_response(request)

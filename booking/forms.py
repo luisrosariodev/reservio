@@ -6,7 +6,7 @@ from django.db import transaction
 from django.forms import inlineformset_factory
 from django.forms.models import BaseInlineFormSet
 
-from .models import Trainer, TrainerAvailability
+from .models import ClientProfile, Trainer, TrainerAvailability
 
 User = get_user_model()
 
@@ -55,6 +55,23 @@ class TrainerRegisterForm(UserCreationForm):
         # Only include fields that exist on the User model.
         fields = ("email", "password1", "password2")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["password1"].widget.attrs.update(
+            {
+                "class": "ui-input",
+                "placeholder": "Mínimo 8 caracteres",
+                "autocomplete": "new-password",
+            }
+        )
+        self.fields["password2"].widget.attrs.update(
+            {
+                "class": "ui-input",
+                "placeholder": "Repite tu contraseña",
+                "autocomplete": "new-password",
+            }
+        )
+
     def clean_email(self):
         email = (self.cleaned_data.get("email") or "").strip().lower()
         if not email:
@@ -89,11 +106,159 @@ class TrainerRegisterForm(UserCreationForm):
                     business_name=self.cleaned_data["business_name"].strip(),
                     ath_mobile_handle=(self.cleaned_data.get("ath_mobile_handle") or "").strip(),
                     active=True,
+                    email_verified=False,
                     is_approved=False,
                     stripe_onboarded=False,
                 )
 
         return user
+
+
+class ClientRegisterForm(UserCreationForm):
+    """Creates a Django user + a linked client profile."""
+
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(
+            attrs={
+                "placeholder": "Ej: you@email.com",
+                "class": "ui-input",
+                "autocomplete": "email",
+            }
+        ),
+    )
+    full_name = forms.CharField(
+        max_length=200,
+        required=True,
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Tu nombre completo",
+                "class": "ui-input",
+                "autocomplete": "name",
+            }
+        ),
+        label="Nombre completo",
+    )
+    phone = forms.CharField(
+        max_length=30,
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Opcional",
+                "class": "ui-input",
+                "autocomplete": "tel",
+            }
+        ),
+        label="Teléfono (opcional)",
+    )
+
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = ("email", "password1", "password2")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["password1"].widget.attrs.update(
+            {
+                "class": "ui-input",
+                "placeholder": "Mínimo 8 caracteres",
+                "autocomplete": "new-password",
+            }
+        )
+        self.fields["password2"].widget.attrs.update(
+            {
+                "class": "ui-input",
+                "placeholder": "Repite tu contraseña",
+                "autocomplete": "new-password",
+            }
+        )
+
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        if not email:
+            raise ValidationError("Email is required.")
+
+        if User.objects.filter(email__iexact=email).exists():
+            raise ValidationError("An account with this email already exists. Please sign in instead.")
+
+        if hasattr(User, "USERNAME_FIELD") and User.USERNAME_FIELD == "username":
+            if User.objects.filter(username__iexact=email).exists():
+                raise ValidationError("An account with this email already exists. Please sign in instead.")
+
+        return email
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        email = self.cleaned_data["email"]
+
+        if hasattr(user, "username"):
+            user.username = email
+        user.email = email
+
+        if commit:
+            with transaction.atomic():
+                user.save()
+                ClientProfile.objects.create(
+                    user=user,
+                    full_name=(self.cleaned_data.get("full_name") or "").strip(),
+                    phone=(self.cleaned_data.get("phone") or "").strip(),
+                    active=True,
+                )
+        return user
+
+
+class TrainerRoleActivationForm(forms.Form):
+    business_name = forms.CharField(
+        max_length=200,
+        required=True,
+        label="Nombre público (trainer / negocio)",
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Ej: RosarioDev Fitness",
+                "class": "ui-input",
+                "autocomplete": "organization",
+            }
+        ),
+    )
+    ath_mobile_handle = forms.CharField(
+        max_length=100,
+        required=False,
+        label="ATH Móvil (handle o número)",
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Opcional",
+                "class": "ui-input",
+                "autocomplete": "off",
+            }
+        ),
+    )
+
+
+class ClientRoleActivationForm(forms.Form):
+    full_name = forms.CharField(
+        max_length=200,
+        required=True,
+        label="Nombre completo",
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Tu nombre completo",
+                "class": "ui-input",
+                "autocomplete": "name",
+            }
+        ),
+    )
+    phone = forms.CharField(
+        max_length=30,
+        required=False,
+        label="Teléfono (opcional)",
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Opcional",
+                "class": "ui-input",
+                "autocomplete": "tel",
+            }
+        ),
+    )
 
 
 # -----------------------------
@@ -112,6 +277,11 @@ class TrainerSettingsForm(forms.ModelForm):
             "slot_duration_minutes",
             "buffer_minutes",
             "capacity_per_slot",
+            "discount_code",
+            "discount_percent_off",
+            "discount_expires_on",
+            "discount_max_uses",
+            "allow_stripe_refunds",
         ]
 
         widgets = {
@@ -127,6 +297,21 @@ class TrainerSettingsForm(forms.ModelForm):
             "capacity_per_slot": forms.NumberInput(
                 attrs={"min": "1", "step": "1", "placeholder": "Ej: 1", "class": "ui-input"}
             ),
+            "discount_code": forms.TextInput(
+                attrs={"placeholder": "Ej: VERANO10", "class": "ui-input"}
+            ),
+            "discount_percent_off": forms.NumberInput(
+                attrs={"min": "0", "max": "100", "step": "1", "placeholder": "Ej: 10", "class": "ui-input"}
+            ),
+            "discount_expires_on": forms.DateInput(
+                attrs={"type": "date", "class": "ui-input"}
+            ),
+            "discount_max_uses": forms.NumberInput(
+                attrs={"min": "0", "step": "1", "placeholder": "0 = sin límite", "class": "ui-input"}
+            ),
+            "allow_stripe_refunds": forms.CheckboxInput(
+                attrs={"class": "ui-checkbox"}
+            ),
         }
 
         labels = {
@@ -134,6 +319,11 @@ class TrainerSettingsForm(forms.ModelForm):
             "slot_duration_minutes": "Duración de cada sesión (min)",
             "buffer_minutes": "Break entre sesiones (min)",
             "capacity_per_slot": "Capacidad por horario",
+            "discount_code": "Código de descuento",
+            "discount_percent_off": "Descuento (%)",
+            "discount_expires_on": "Expira el",
+            "discount_max_uses": "Límite de usos",
+            "allow_stripe_refunds": "Permitir reembolsos con Stripe",
         }
 
         help_texts = {
@@ -141,6 +331,11 @@ class TrainerSettingsForm(forms.ModelForm):
             "capacity_per_slot": "Cuántos clientes pueden reservar el mismo horario.",
             "slot_duration_minutes": "Se usa para generar tus horarios (30, 45, 60...).",
             "buffer_minutes": "Minutos opcionales entre sesiones (0 = ninguno).",
+            "discount_code": "Opcional. Si lo dejas vacío, no habrá cupón activo.",
+            "discount_percent_off": "Porcentaje de descuento para ese código.",
+            "discount_expires_on": "Opcional. Fecha límite para usar el cupón.",
+            "discount_max_uses": "Máximo total de usos del cupón (0 = ilimitado).",
+            "allow_stripe_refunds": "Si activas esto, podrás procesar reembolsos de Stripe al cancelar reservas.",
         }
 
     def clean_slot_duration_minutes(self):
@@ -171,6 +366,26 @@ class TrainerSettingsForm(forms.ModelForm):
             raise ValidationError("El precio no puede ser negativo.")
         return v
 
+    def clean_discount_code(self):
+        code = (self.cleaned_data.get("discount_code") or "").strip().upper()
+        return code
+
+    def clean_discount_percent_off(self):
+        value = self.cleaned_data.get("discount_percent_off")
+        if value is None:
+            return 0
+        if value < 0 or value > 100:
+            raise ValidationError("El descuento debe estar entre 0 y 100.")
+        return value
+
+    def clean_discount_max_uses(self):
+        value = self.cleaned_data.get("discount_max_uses")
+        if value is None:
+            return 0
+        if value < 0:
+            raise ValidationError("El límite de usos no puede ser negativo.")
+        return value
+
 
 # ------------------------------------
 # Availability blocks (inline formset)
@@ -192,12 +407,13 @@ class TrainerAvailabilityForm(forms.ModelForm):
         label="Activo",
     )
 
-    # Use HTML5 time inputs and accept common formats (with/without seconds).
+    # Use native time inputs with 15-min interval.
+    # iPhone Safari renders this as an iOS wheel picker (scroll-style).
     start_time = forms.TimeField(
         input_formats=["%H:%M", "%H:%M:%S"],
         widget=forms.TimeInput(
             format="%H:%M",
-            attrs={"type": "time", "class": "ui-input", "step": "60"},
+            attrs={"type": "time", "class": "ui-input ui-time-scroll", "step": "900"},
         ),
         required=True,
         label="Inicio",
@@ -206,7 +422,7 @@ class TrainerAvailabilityForm(forms.ModelForm):
         input_formats=["%H:%M", "%H:%M:%S"],
         widget=forms.TimeInput(
             format="%H:%M",
-            attrs={"type": "time", "class": "ui-input", "step": "60"},
+            attrs={"type": "time", "class": "ui-input ui-time-scroll", "step": "900"},
         ),
         required=True,
         label="Fin",

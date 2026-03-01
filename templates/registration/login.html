@@ -1,88 +1,47 @@
 {% extends "base.html" %}
-{% block title %}Sign in · Reserv.io{% endblock %}
+{% load static %}
+{% block title %}Iniciar sesión · Reserv.io{% endblock %}
 
-{% block body %}
-<style>
-  /* Login page: keep username + password inputs visually consistent */
-  .auth-card form {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
+{% block head %}
+  <link rel="stylesheet" href="{% static 'css/pages/auth.css' %}">
+{% endblock %}
 
-  .auth-card .field {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .auth-card .field input[type="text"],
-  .auth-card .field input[type="email"],
-  .auth-card .field input[type="password"] {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 14px 16px;
-    border-radius: 14px;
-    border: 1px solid rgba(17, 24, 39, 0.18);
-    background: rgba(255, 255, 255, 0.7);
-    font-size: 16px;
-    line-height: 1.2;
-    font-family: inherit;
-    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
-  }
-
-  .auth-card .field input[type="text"]:focus,
-  .auth-card .field input[type="email"]:focus,
-  .auth-card .field input[type="password"]:focus {
-    outline: none;
-    border-color: rgba(46, 125, 102, 0.55);
-    box-shadow: 0 0 0 4px rgba(46, 125, 102, 0.12);
-    background: rgba(255, 255, 255, 0.92);
-  }
-
-  .auth-card .btn.full {
-    margin-top: 6px;
-  }
-</style>
+{% block main %}
 <div class="page-center">
-  <div class="card auth-card">
-    <a class="link-back" href="{% url 'booking:trainer_access' %}">← Back to home</a>
-    <h1 class="auth-title">Welcome back</h1>
-    <p class="auth-hint">Sign in to manage your training sessions</p>
+  <div class="card rio-auth-card">
+    <a class="link-back" href="{{ back_url|default_if_none:'/' }}">← {{ back_label|default:"Volver al inicio" }}</a>
+    <h1 class="rio-auth-title">Bienvenido de nuevo</h1>
+    <p class="rio-auth-subtitle">Inicia sesión para acceder a tu portal (entrenador o cliente).</p>
 
     {% if form.errors %}
-      <div class="alert error">
-        Invalid email or password. Please try again.
+      <div class="alert alert-error">
+        Correo o contraseña inválidos. Inténtalo de nuevo.
       </div>
     {% endif %}
 
-    <form method="post">
+    <form method="post" class="rio-form" data-submit-lock data-submit-text="Ingresando...">
       {% csrf_token %}
+      {% if next %}
+        <input type="hidden" name="next" value="{{ next }}">
+      {% endif %}
 
-      <div class="field">
-        <label for="id_username">Email / Username</label>
+      <div class="rio-field">
+        <label class="rio-label" for="id_username">Correo / Usuario</label>
         {{ form.username }}
       </div>
 
-      <div class="field">
-        <label for="id_password">Password</label>
+      <div class="rio-field">
+        <label class="rio-label" for="id_password">Contraseña</label>
         {{ form.password }}
       </div>
 
-      <button type="submit" class="btn btn-primary full">
-        Sign in
-      </button>
-
-      <p class="auth-hint" style="margin:12px 0 0;">
-        <a href="{% url 'password_reset' %}">Forgot password?</a>
-      </p>
+      <div class="rio-actions">
+        <button type="submit" class="btn btn-primary">Iniciar sesión</button>
+        <a class="btn btn-secondary" href="{% url 'password_reset' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Olvidé mi contraseña</a>
+        <a class="btn btn-secondary" href="{% url 'booking:trainer_register' %}">Crear entrenador</a>
+        <a class="btn btn-secondary" href="{% url 'booking:client_portal_register' %}">Crear cliente</a>
+      </div>
     </form>
-
-    <div class="auth-footer">
-      <a href="{% url 'booking:home' %}">Back to home</a>
-      <span class="dot">•</span>
-      <a href="{% url 'booking:trainer_register' %}">Create an account</a>
-    </div>
   </div>
 </div>
 {% endblock %}

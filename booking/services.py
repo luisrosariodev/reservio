@@ -105,15 +105,20 @@ def create_account_login_link(*, account_id: str, redirect_url: str) -> str:
     return link.url
 
 
-def get_platform_fee_percent() -> Decimal:
+def get_platform_fee_percent(trainer: Trainer | None = None) -> Decimal:
     """Global platform fee percentage.
 
-    Controlled via settings.PLATFORM_FEE_PERCENT.
-    Defaults to 0.
+    Per-trainer override has priority.
+    If trainer override is empty, defaults to 0.
+    (No global fallback for trainer checkouts.)
 
     Values are clamped to [0, 100].
     """
-    raw = getattr(settings, "PLATFORM_FEE_PERCENT", 0)
+    raw = 0
+    if trainer is not None:
+        raw = getattr(trainer, "platform_fee_percent_override", 0)
+        if raw in (None, ""):
+            raw = 0
     try:
         pct = Decimal(str(raw))
     except Exception:
@@ -134,9 +139,9 @@ def to_stripe_amount(amount: Decimal, currency: str) -> int:
     return int((amount * Decimal("100")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
-def compute_platform_fee_amount(total_amount: Decimal) -> Decimal:
+def compute_platform_fee_amount(total_amount: Decimal, trainer: Trainer | None = None) -> Decimal:
     """Compute platform fee in major currency units (e.g., dollars)."""
-    pct = get_platform_fee_percent()
+    pct = get_platform_fee_percent(trainer=trainer)
     if pct <= 0:
         return Decimal("0")
     return (total_amount * (pct / Decimal("100"))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
@@ -176,15 +181,15 @@ def get_stripe_connect_status(trainer: Trainer) -> dict:
     """Return a simple dict for templates: state/message/action + optional details."""
     status = StripeConnectStatus(
         state="not_connected",
-        message="Connect Stripe to receive payouts.",
-        action_label="Connect Stripe",
+        message="Conecta Stripe para recibir pagos en tu cuenta bancaria.",
+        action_label="Conectar Stripe",
         action_url_name="booking:trainer_stripe_connect_start",
         details=[],
     )
 
     if not _stripe_secret_key():
         status.state = "error"
-        status.message = "Stripe is not configured yet (missing STRIPE_SECRET_KEY)."
+        status.message = "Stripe aún no está configurado en la plataforma."
         status.action_label = None
         status.action_url_name = None
         return status.as_dict()
@@ -193,22 +198,22 @@ def get_stripe_connect_status(trainer: Trainer) -> dict:
     # This prevents confusion where the button exists but the backend blocks the flow.
     if not is_trainer_approved(trainer):
         status.state = "error"
-        status.message = "Your trainer profile is not approved yet. Stripe payouts will be available after approval."
+        status.message = "Tu perfil está pendiente de aprobación. Stripe se habilita cuando admin apruebe tu cuenta."
         status.action_label = None
         status.action_url_name = None
         return status.as_dict()
 
     if bool(getattr(trainer, "stripe_onboarded", False)):
         status.state = "connected"
-        status.message = "Stripe is connected."
+        status.message = "Stripe está conectado."
         status.action_label = None
         status.action_url_name = None
         return status.as_dict()
 
     if bool(getattr(trainer, "stripe_account_id", "")):
         status.state = "incomplete"
-        status.message = "Stripe account created — finish onboarding."
-        status.action_label = "Finish onboarding"
+        status.message = "La cuenta de Stripe fue creada. Falta completar el onboarding."
+        status.action_label = "Terminar configuración"
         status.action_url_name = "booking:trainer_stripe_connect_start"
 
         stripe.api_key = _stripe_secret_key()
@@ -227,7 +232,7 @@ def get_stripe_connect_status(trainer: Trainer) -> dict:
 
             if details_submitted and payouts_enabled:
                 status.state = "connected"
-                status.message = "Stripe is connected and ready for payouts."
+                status.message = "Stripe está conectado y listo para pagos."
                 status.action_label = None
                 status.action_url_name = None
 
@@ -237,12 +242,12 @@ def get_stripe_connect_status(trainer: Trainer) -> dict:
 
         except stripe.error.InvalidRequestError:
             status.state = "error"
-            status.message = "Stripe Connect is not enabled for this Stripe account (or the connected account is invalid)."
+            status.message = "Stripe Connect no está habilitado en esta cuenta de Stripe o la cuenta conectada es inválida."
             status.action_label = None
             status.action_url_name = None
         except stripe.error.StripeError:
             status.state = "error"
-            status.message = "We couldn't reach Stripe right now. Please try again in a moment."
+            status.message = "No pudimos conectar con Stripe ahora mismo. Inténtalo nuevamente en unos minutos."
             status.action_label = None
             status.action_url_name = None
 
@@ -358,7 +363,8 @@ def create_stripe_checkout_session(
     # Compute platform fee on the total (unit * qty)
     qty_int = int(quantity)
     total_amount = (unit_amount * Decimal(qty_int)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    platform_fee_amount = compute_platform_fee_amount(total_amount)
+    platform_fee_percent = get_platform_fee_percent(trainer=trainer)
+    platform_fee_amount = compute_platform_fee_amount(total_amount, trainer=trainer)
     platform_fee_stripe = to_stripe_amount(platform_fee_amount, stripe_currency)
 
     if platform_fee_stripe < 0:
@@ -396,8 +402,19 @@ def create_stripe_checkout_session(
         user_msg = getattr(e, "user_message", None) or "No pudimos iniciar el pago con Stripe ahora mismo."
         raise ServiceUserError(user_msg, debug_message=str(e)) from e
 
+    trainer_net_amount = (total_amount - platform_fee_amount).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     checkout.stripe_session_id = session.id
-    checkout.save(update_fields=["stripe_session_id"])
+    checkout.platform_fee_percent_applied = platform_fee_percent
+    checkout.platform_fee_amount = platform_fee_amount
+    checkout.trainer_net_amount = trainer_net_amount
+    checkout.save(
+        update_fields=[
+            "stripe_session_id",
+            "platform_fee_percent_applied",
+            "platform_fee_amount",
+            "trainer_net_amount",
+        ]
+    )
 
     return session.url
 
