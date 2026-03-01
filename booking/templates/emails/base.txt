@@ -1,0 +1,9 @@
+{{ email_brand_name|default:"Reserv.io" }}
+
+{% block content %}{% endblock %}
+
+---
+{{ email_footer_note|default:"Este correo fue generado automáticamente por Reserv.io." }}
+{% if email_support_email %}Soporte: {{ email_support_email }}{% endif %}
+{% if email_legal_name %}(c) {{ email_year }} {{ email_legal_name }}{% endif %}
+{% if email_legal_address %}{{ email_legal_address }}{% endif %}

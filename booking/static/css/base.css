@@ -9,9 +9,9 @@ html{
   --font-display: ui-serif, "Iowan Old Style", "Georgia", "Times New Roman", serif;
 
   /* Backgrounds */
-  --bg: #fbfbf9;          /* main page */
-  --bg2: #f3f6f3;         /* subtle gradient helper */
-  --bg-soft: rgba(79,143,118,0.10);
+  --bg: #f4f7f8;          /* main page */
+  --bg2: #edf2f4;         /* subtle gradient helper */
+  --bg-soft: rgba(96,190,172,0.12);
 
   /* Surfaces */
   --card: rgba(255,255,255,0.92);
@@ -21,18 +21,24 @@ html{
   --shadow-soft: 0 10px 30px rgba(15,23,42,0.08);
 
   /* Text */
-  --text: #0f172a;
-  --muted: rgba(15,23,42,0.62);
+  --text: #0e1b2e;
+  --muted: rgba(14,27,46,0.62);
 
   /* Inputs */
   --input: #ffffff;
   --inputBorder: rgba(15,23,42,0.18);
+  --fieldBg: var(--bg2);
+  --fieldBorder: var(--border);
+  --fieldShadow: none;
 
   /* Brand / Accent */
-  --accent: #4f8f76;
-  --accentHover: #447e68;
-  --accentSoft: rgba(79,143,118,0.14);
-  --accentRgb: 79,143,118;
+  --primary: #004e54;
+  --primaryHover: #003e54;
+  --primarySoft: rgba(0,78,84,0.18);
+  --accent: #60beac;
+  --accentHover: #55b2a0;
+  --accentSoft: rgba(96,190,172,0.18);
+  --accentRgb: 96,190,172;
 
   /* Buttons (neutral baseline; components.css can override) */
   --btnBg: rgba(15,23,42,0.05);
@@ -55,8 +61,8 @@ html{
 
 /* Optional dark theme (ONLY if you set <html data-theme="dark">) */
 html[data-theme="dark"]{
-  --bg: #050914;
-  --bg2: #0b1220;
+  --bg: #08131b;
+  --bg2: #0d1b26;
 
   --card: rgba(15,23,42,0.92);
   --cardSolid: rgba(15,23,42,0.98);
@@ -64,16 +70,22 @@ html[data-theme="dark"]{
   --shadow: 0 22px 65px rgba(0,0,0,0.85);
   --shadow-soft: 0 18px 55px rgba(0,0,0,0.55);
 
-  --text: #e5e7eb;
-  --muted: rgba(229,231,235,0.65);
+  --text: #e7edf4;
+  --muted: rgba(231,237,244,0.68);
 
   --input: #020617;
   --inputBorder: #1f2937;
+  --fieldBg: var(--bg2);
+  --fieldBorder: var(--border);
+  --fieldShadow: none;
 
-  --accent: #6fb59a;
-  --accentHover: #63a88f;
-  --accentSoft: rgba(111,181,154,0.22);
-  --accentRgb: 111,181,154;
+  --primary: #0d7aa6;
+  --primaryHover: #0b6a90;
+  --primarySoft: rgba(13,122,166,0.28);
+  --accent: #60beac;
+  --accentHover: #55b2a0;
+  --accentSoft: rgba(96,190,172,0.26);
+  --accentRgb: 96,190,172;
 
   --btnBg: rgba(255,255,255,0.10);
   --btnHover: rgba(255,255,255,0.14);
@@ -82,8 +94,8 @@ html[data-theme="dark"]{
 /* Auto dark theme (device setting) — only when you have NOT forced a theme */
 @media (prefers-color-scheme: dark){
   html:not([data-theme]){
-    --bg: #050914;
-    --bg2: #0b1220;
+    --bg: #08131b;
+    --bg2: #0d1b26;
 
     --card: rgba(15,23,42,0.92);
     --cardSolid: rgba(15,23,42,0.98);
@@ -91,16 +103,22 @@ html[data-theme="dark"]{
     --shadow: 0 22px 65px rgba(0,0,0,0.85);
     --shadow-soft: 0 18px 55px rgba(0,0,0,0.55);
 
-    --text: #e5e7eb;
-    --muted: rgba(229,231,235,0.65);
+    --text: #e7edf4;
+    --muted: rgba(231,237,244,0.68);
 
     --input: #020617;
     --inputBorder: #1f2937;
+    --fieldBg: var(--bg2);
+    --fieldBorder: var(--border);
+    --fieldShadow: none;
 
-    --accent: #6fb59a;
-    --accentHover: #63a88f;
-    --accentSoft: rgba(111,181,154,0.22);
-    --accentRgb: 111,181,154;
+    --primary: #0d7aa6;
+    --primaryHover: #0b6a90;
+    --primarySoft: rgba(13,122,166,0.28);
+    --accent: #60beac;
+    --accentHover: #55b2a0;
+    --accentSoft: rgba(96,190,172,0.26);
+    --accentRgb: 96,190,172;
 
     --btnBg: rgba(255,255,255,0.10);
     --btnHover: rgba(255,255,255,0.14);
@@ -234,14 +252,15 @@ a:hover{
   letter-spacing: -0.01em;
 }
 .brand-mark{
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
-  background: rgba(var(--accentRgb), 0.14);
-  border: 1px solid rgba(var(--accentRgb), 0.22);
+  width: 48px;
+  height: 48px;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
   display: grid;
   place-items: center;
-  box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+  box-shadow: none;
+  overflow: hidden;
 }
 .brand-name{
   font-size: 16px;

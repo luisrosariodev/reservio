@@ -1,0 +1,50 @@
+{% extends "emails/base.html" %}
+{% block title %}Confirmación de reserva · Reserv.io{% endblock %}
+{% block content %}
+<h1 style="margin:0 0 8px 0;font-size:30px;line-height:1.15;font-weight:800;color:#004e54;">Reserva confirmada</h1>
+<p style="margin:0 0 16px 0;font-size:18px;line-height:1.5;color:#3d4a5c;">
+  Hola {{ client_name }}, tu reserva con {{ trainer_name }} fue procesada correctamente.
+</p>
+
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 16px 0;border:1px solid #d7dee3;border-radius:12px;">
+  <tr>
+    <td style="padding:12px 14px;border-bottom:1px solid #d7dee3;font-size:13px;color:#637085;letter-spacing:.08em;text-transform:uppercase;">Código</td>
+    <td style="padding:12px 14px;border-bottom:1px solid #d7dee3;font-size:16px;font-weight:700;color:#0e1b2e;" align="right">#{{ checkout_code }}</td>
+  </tr>
+  <tr>
+    <td style="padding:12px 14px;border-bottom:1px solid #d7dee3;font-size:13px;color:#637085;letter-spacing:.08em;text-transform:uppercase;">Total pagado</td>
+    <td style="padding:12px 14px;border-bottom:1px solid #d7dee3;font-size:16px;font-weight:700;color:#0e1b2e;" align="right">{{ total_paid }}</td>
+  </tr>
+  <tr>
+    <td style="padding:12px 14px;border-bottom:1px solid #d7dee3;font-size:13px;color:#637085;letter-spacing:.08em;text-transform:uppercase;">Descuento</td>
+    <td style="padding:12px 14px;border-bottom:1px solid #d7dee3;font-size:15px;color:#3d4a5c;" align="right">{{ discount_amount }}</td>
+  </tr>
+  <tr>
+    <td style="padding:12px 14px;font-size:13px;color:#637085;letter-spacing:.08em;text-transform:uppercase;">Código de descuento</td>
+    <td style="padding:12px 14px;font-size:15px;color:#3d4a5c;" align="right">{{ discount_code }}</td>
+  </tr>
+</table>
+
+<h2 style="margin:0 0 8px 0;font-size:18px;line-height:1.3;font-weight:700;color:#004e54;">Sesiones</h2>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #d7dee3;border-radius:12px;overflow:hidden;">
+  {% for item in session_items %}
+  <tr>
+    <td style="padding:11px 14px;border-bottom:1px solid #e6edf0;font-size:14px;color:#3d4a5c;">
+      <div style="font-weight:700;color:#0e1b2e;">{{ item.when }}</div>
+      <div>Asistente: {{ item.attendee }}</div>
+    </td>
+    <td style="padding:11px 14px;border-bottom:1px solid #e6edf0;font-size:14px;color:#0e1b2e;font-weight:700;" align="right">
+      {{ item.amount }}
+    </td>
+  </tr>
+  {% empty %}
+  <tr>
+    <td style="padding:11px 14px;font-size:14px;color:#637085;">No hay sesiones en esta reserva.</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<p style="margin:16px 0 0 0;font-size:14px;line-height:1.6;color:#637085;">
+  Adjuntamos tu invoice en PDF para referencia.
+</p>
+{% endblock %}

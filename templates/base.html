@@ -1,10 +1,14 @@
 {% load static %}
 <!doctype html>
-<html lang="en" data-theme="auto">
+<html lang="es" data-theme="auto">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>{% block title %}Reserv.io{% endblock %}</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico?v=5">
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ SITE_FAVICON_URL|default:'/media/favicon-256.png' }}?v=5">
+  <link rel="apple-touch-icon" href="{{ SITE_FAVICON_URL|default:'/media/favicon-256.png' }}?v=5">
 
   <link rel="stylesheet" href="{% static 'css/base.css' %}">
   <link rel="stylesheet" href="{% static 'css/components.css' %}">
@@ -19,6 +23,48 @@
       .desktop-only { display: none !important; }
       .mobile-only { display: flex; align-items: center; }
       .nav-toggle:checked ~ .mobile-only .mobile-nav { display: block; }
+    }
+
+    .portal-header-badge{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, var(--card) 92%, transparent);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .portal-header-actions{
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .header-inner.portal-layout{
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-inner.portal-layout .site-brand{
+      justify-self: start;
+    }
+
+    .header-inner.portal-layout .portal-header-center{
+      justify-self: center;
+    }
+
+    .header-inner.portal-layout .portal-header-right{
+      justify-self: end;
     }
 
     /* =============================
@@ -38,12 +84,6 @@
       grid-template-columns: 1.2fr 1fr 1fr 1fr;
       gap: 44px;
       align-items: start;
-    }
-
-    .footer-simple-brand .brand-name{
-      font-weight: 700;
-      letter-spacing: -0.01em;
-      font-size: 28px;
     }
 
     .footer-simple-note{
@@ -103,6 +143,99 @@
     @media (max-width: 720px){
       .footer-simple-bottom{ flex-direction: column; text-align: center; }
     }
+
+    /* =============================
+       Global toast notifications
+       ============================= */
+    .toast-stack{
+      position: fixed;
+      top: 84px;
+      right: 18px;
+      z-index: 120;
+      display: grid;
+      gap: 10px;
+      width: min(420px, calc(100vw - 28px));
+      pointer-events: none;
+    }
+
+    .toast{
+      pointer-events: auto;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: start;
+      gap: 10px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--cardSolid);
+      box-shadow: var(--shadow-soft);
+      padding: 12px 12px 12px 14px;
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.35;
+      transform: translateY(0);
+      opacity: 1;
+      transition: opacity .22s ease, transform .22s ease;
+      animation: toast-enter .2s ease both;
+    }
+
+    .toast.is-closing{
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+
+    @keyframes toast-enter{
+      from{
+        opacity: 0;
+        transform: translateY(-8px) scale(.985);
+      }
+      to{
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .toast-success{
+      border-color: rgba(22,163,74,.35);
+      background: rgba(22,163,74,.08);
+    }
+
+    .toast-error{
+      border-color: rgba(220,38,38,.35);
+      background: rgba(220,38,38,.08);
+    }
+
+    .toast-warning{
+      border-color: rgba(245,158,11,.45);
+      background: rgba(245,158,11,.10);
+    }
+
+    .toast-info{
+      border-color: rgba(var(--accentRgb), .30);
+      background: rgba(var(--accentRgb), .10);
+    }
+
+    .toast-close{
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0 4px;
+    }
+
+    .toast-close:hover{
+      color: var(--text);
+    }
+
+    @media (max-width: 720px){
+      .toast-stack{
+        top: 74px;
+        left: 10px;
+        right: 10px;
+        width: auto;
+      }
+    }
   </style>
 
   {% block head %}{% endblock %}
@@ -111,73 +244,128 @@
 <body id="top">
   <!-- Top App Bar -->
   <header class="site-header" role="banner">
-    <div class="container header-inner nav-inner">
-      <a class="brand site-brand" href="{% url 'booking:home_io' %}" aria-label="Reserv.io home">
-        <span class="brand-mark" aria-hidden="true"></span>
+    <div class="container header-inner nav-inner {% if current_url == 'trainer_portal' or current_url == 'client_portal_dashboard' or current_url == 'client_reschedule_reservation' or current_url == 'account_portal_home' or current_url == 'account_mode_select' or current_url == 'account_role_management' %}portal-layout{% endif %}">
+      {% with current_url=request.resolver_match.url_name %}
+      {% if current_url == 'trainer_portal' or current_url == 'client_portal_dashboard' or current_url == 'client_reschedule_reservation' or current_url == 'account_portal_home' or current_url == 'account_mode_select' or current_url == 'account_role_management' %}
+      <a class="brand site-brand" href="{% url 'booking:account_portal_home' %}" aria-label="Ir al portal">
+      {% else %}
+      <a class="brand site-brand" href="{% if request.session.trainer_portal_mode %}{% url 'booking:trainer_portal_exit' %}{% else %}{% url 'booking:home_io' %}{% endif %}" aria-label="Inicio de Reserv.io">
+      {% endif %}
+        <span class="brand-mark" aria-hidden="true">
+          <img src="{{ SITE_FAVICON_URL|default:'/media/favicon-256.png' }}" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:0;display:block;">
+        </span>
         <span class="brand-name">Reserv.io</span>
       </a>
 
       <div class="mobile-only">
         <!-- Mobile nav toggle (CSS-only) -->
-        <input class="nav-toggle" type="checkbox" id="nav-toggle" aria-label="Open menu" />
+        <input class="nav-toggle" type="checkbox" id="nav-toggle" aria-label="Abrir menú" />
         <label class="nav-toggle-btn menu-toggle" for="nav-toggle" aria-hidden="true">
           <span></span><span></span><span></span>
         </label>
       </div>
 
-      <div class="desktop-only">
-        <nav class="nav site-nav" aria-label="Primary">
-          <a class="nav-link" href="{% url 'booking:trainer_list' %}">Trainers</a>
-          <a class="nav-link" href="{% url 'booking:home_io' %}#how">How it works</a>
-          <a class="nav-link" href="{% url 'booking:home_io' %}#trainers">Featured</a>
+      <div class="desktop-only portal-header-center">
+        {% if current_url == 'trainer_portal' or current_url == 'client_portal_dashboard' or current_url == 'client_reschedule_reservation' or current_url == 'account_portal_home' or current_url == 'account_mode_select' or current_url == 'account_role_management' %}
+        <div class="portal-header-badge">
+          Dashboard
+        </div>
+        {% else %}
+        <nav class="nav site-nav" aria-label="Navegación principal">
+          <a class="nav-link" href="{% if request.session.trainer_portal_mode %}{% url 'booking:trainer_portal_exit' %}{% else %}{% url 'booking:home_io' %}{% endif %}">Inicio</a>
+          <a class="nav-link" href="{% url 'booking:trainer_list' %}">Entrenadores</a>
+          <a class="nav-link" href="{% url 'booking:home_io' %}#how">Cómo funciona</a>
+          <a class="nav-link" href="{% url 'booking:home_io' %}#trainers">Destacados</a>
         </nav>
+        {% endif %}
       </div>
 
-      <div class="desktop-only">
-        <div class="header-actions nav-actions">
-          {% if request.user.is_authenticated %}
-            <a class="btn btn-ghost" href="{% url 'booking:trainer_portal' %}">Portal</a>
+      <div class="desktop-only portal-header-right">
+        {% if current_url == 'trainer_portal' or current_url == 'client_portal_dashboard' or current_url == 'client_reschedule_reservation' or current_url == 'account_portal_home' or current_url == 'account_mode_select' or current_url == 'account_role_management' %}
+          <div class="portal-header-actions">
+            <a class="btn btn-ghost" href="{% url 'booking:account_role_management' %}">Mi cuenta</a>
             <form method="post" action="{% url 'logout' %}" class="inline-form">
               {% csrf_token %}
-              <button class="btn btn-ghost" type="submit">Log out</button>
+              <button class="btn btn-ghost" type="submit">Cerrar sesión</button>
+            </form>
+          </div>
+        {% else %}
+        <div class="header-actions nav-actions">
+          {% if request.user.is_authenticated %}
+            <a class="btn btn-ghost" href="{% url 'booking:account_portal_home' %}">Mi panel</a>
+            <form method="post" action="{% url 'logout' %}" class="inline-form">
+              {% csrf_token %}
+              <button class="btn btn-ghost" type="submit">Cerrar sesión</button>
             </form>
           {% else %}
-            <a class="btn btn-ghost" href="{% url 'login' %}">Sign in</a>
-            <a class="btn btn-primary" href="{% url 'booking:trainer_access' %}">Get started</a>
+            <a class="btn btn-ghost" href="{% url 'login' %}">Iniciar sesión</a>
+            <a class="btn btn-primary" href="{% url 'booking:trainer_access' %}">Comenzar</a>
           {% endif %}
         </div>
+        {% endif %}
       </div>
 
       <div class="mobile-only">
         <!-- Mobile menu panel (same links + actions) -->
-        <div class="mobile-nav" role="dialog" aria-label="Menu" aria-modal="true">
+        <div class="mobile-nav" role="dialog" aria-label="Menú" aria-modal="true">
           <div class="mobile-nav-inner">
+            {% if current_url == 'trainer_portal' or current_url == 'client_portal_dashboard' or current_url == 'client_reschedule_reservation' or current_url == 'account_portal_home' or current_url == 'account_mode_select' or current_url == 'account_role_management' %}
             <div class="mobile-nav-links">
-              <a class="nav-link" href="{% url 'booking:trainer_list' %}" onclick="document.getElementById('nav-toggle').checked=false">Trainers</a>
-              <a class="nav-link" href="{% url 'booking:home_io' %}#how" onclick="document.getElementById('nav-toggle').checked=false">How it works</a>
-              <a class="nav-link" href="{% url 'booking:home_io' %}#trainers" onclick="document.getElementById('nav-toggle').checked=false">Featured</a>
+              <a class="nav-link" href="{% url 'booking:account_portal_home' %}" onclick="document.getElementById('nav-toggle').checked=false">Mi portal</a>
+              <a class="nav-link" href="{% url 'booking:account_role_management' %}" onclick="document.getElementById('nav-toggle').checked=false">Mi cuenta</a>
+            </div>
+
+            <div class="mobile-nav-actions">
+              <form method="post" action="{% url 'logout' %}" class="inline-form">
+                {% csrf_token %}
+                <button class="btn btn-ghost" type="submit">Cerrar sesión</button>
+              </form>
+            </div>
+            {% else %}
+            <div class="mobile-nav-links">
+              <a class="nav-link" href="{% if request.session.trainer_portal_mode %}{% url 'booking:trainer_portal_exit' %}{% else %}{% url 'booking:home_io' %}{% endif %}" onclick="document.getElementById('nav-toggle').checked=false">Inicio</a>
+              <a class="nav-link" href="{% url 'booking:trainer_list' %}" onclick="document.getElementById('nav-toggle').checked=false">Entrenadores</a>
+              <a class="nav-link" href="{% url 'booking:home_io' %}#how" onclick="document.getElementById('nav-toggle').checked=false">Cómo funciona</a>
+              <a class="nav-link" href="{% url 'booking:home_io' %}#trainers" onclick="document.getElementById('nav-toggle').checked=false">Destacados</a>
             </div>
 
             <div class="mobile-nav-actions">
               {% if request.user.is_authenticated %}
-                <a class="btn btn-ghost" href="{% url 'booking:trainer_portal' %}" onclick="document.getElementById('nav-toggle').checked=false">Portal</a>
+                <a class="btn btn-ghost" href="{% url 'booking:account_portal_home' %}" onclick="document.getElementById('nav-toggle').checked=false">Mi panel</a>
                 <form method="post" action="{% url 'logout' %}" class="inline-form">
                   {% csrf_token %}
-                  <button class="btn btn-ghost" type="submit">Log out</button>
+                  <button class="btn btn-ghost" type="submit">Cerrar sesión</button>
                 </form>
               {% else %}
-                <a class="btn btn-ghost" href="{% url 'login' %}" onclick="document.getElementById('nav-toggle').checked=false">Sign in</a>
-                <a class="btn btn-primary" href="{% url 'booking:trainer_access' %}" onclick="document.getElementById('nav-toggle').checked=false">Get started</a>
+                <a class="btn btn-ghost" href="{% url 'login' %}" onclick="document.getElementById('nav-toggle').checked=false">Iniciar sesión</a>
+                <a class="btn btn-primary" href="{% url 'booking:trainer_access' %}" onclick="document.getElementById('nav-toggle').checked=false">Comenzar</a>
               {% endif %}
             </div>
+            {% endif %}
           </div>
         </div>
       </div>
+      {% endwith %}
     </div>
   </header>
 
   <!-- Page -->
   <main class="site-main">
+    {% if messages %}
+      <div class="toast-stack" aria-live="polite" aria-atomic="true">
+        {% for message in messages %}
+          <div
+            class="toast {% if 'error' in message.tags %}toast-error{% elif 'warning' in message.tags %}toast-warning{% elif 'success' in message.tags %}toast-success{% else %}toast-info{% endif %}"
+            data-toast
+            data-autohide-ms="{% if 'error' in message.tags %}7000{% elif 'warning' in message.tags %}6500{% else %}4500{% endif %}"
+            role="status"
+          >
+            <div>{{ message }}</div>
+            <button class="toast-close" type="button" aria-label="Cerrar notificación" data-toast-close>&times;</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
     {% block main %}
       <div class="{% block main_container_class %}container{% endblock %}">
         {% block body %}{% endblock %}
@@ -190,11 +378,14 @@
     <div class="container footer-simple-inner">
       <div class="footer-simple-grid">
         <div class="footer-simple-brand">
-          <div class="brand">
+          <div class="brand site-brand">
+            <span class="brand-mark" aria-hidden="true">
+              <img src="{{ SITE_FAVICON_URL|default:'/media/favicon-256.png' }}" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:0;display:block;">
+            </span>
             <span class="brand-name">Reserv.io</span>
           </div>
           <p class="footer-simple-note">
-            Modern booking for trainers & gyms. Built for clarity, speed, and secure payments.
+            Reservas modernas para entrenadores y gimnasios. Diseñado para claridad, rapidez y pagos seguros.
           </p>
           <p class="footer-simple-note footer-simple-inline">
             <strong>Stripe</strong>&nbsp;&nbsp;<strong>ATH Móvil</strong>&nbsp;&nbsp;<strong>SaaS</strong>
@@ -202,23 +393,25 @@
         </div>
 
         <div class="footer-simple-col">
-          <div class="footer-simple-title">Product</div>
-          <a class="footer-simple-link" href="{% url 'booking:trainer_list' %}">Find trainers</a>
-          <a class="footer-simple-link" href="{% url 'booking:home_io' %}#how">How it works</a>
-          <a class="footer-simple-link" href="{% url 'booking:trainer_access' %}">For trainers</a>
+          <div class="footer-simple-title">Producto</div>
+          <a class="footer-simple-link" href="{% url 'booking:trainer_list' %}">Ver entrenadores</a>
+          <a class="footer-simple-link" href="{% url 'booking:home_io' %}#how">Cómo funciona</a>
+          <a class="footer-simple-link" href="{% url 'booking:trainer_access' %}">Soy entrenador</a>
+          <a class="footer-simple-link" href="{% url 'booking:client_portal_access' %}">Soy cliente</a>
         </div>
 
         <div class="footer-simple-col">
-          <div class="footer-simple-title">Account</div>
-          <a class="footer-simple-link" href="{% url 'login' %}">Sign in</a>
-          <a class="footer-simple-link" href="{% url 'booking:trainer_register' %}">Create trainer profile</a>
-          <a class="footer-simple-link" href="{% url 'password_reset' %}">Reset password</a>
+          <div class="footer-simple-title">Cuenta</div>
+          <a class="footer-simple-link" href="{% url 'login' %}">Iniciar sesión</a>
+          <a class="footer-simple-link" href="{% url 'booking:trainer_register' %}">Crear perfil de entrenador</a>
+          <a class="footer-simple-link" href="{% url 'booking:client_portal_register' %}">Crear cuenta de cliente</a>
+          <a class="footer-simple-link" href="{% url 'password_reset' %}">Restablecer contraseña</a>
         </div>
 
         <div class="footer-simple-col">
-          <div class="footer-simple-title">Legal</div>
-          <a class="footer-simple-link" href="#">Privacy</a>
-          <a class="footer-simple-link" href="#">Terms</a>
+          <div class="footer-simple-title">Información legal</div>
+          <a class="footer-simple-link" href="#">Privacidad</a>
+          <a class="footer-simple-link" href="#">Términos</a>
         </div>
       </div>
 
@@ -230,6 +423,93 @@
     </div>
   </footer>
 
+  <script src="{% static 'js/form_feedback.js' %}"></script>
+  <script>
+    (function () {
+      var MAX_VISIBLE_TOASTS = 3;
+
+      function getToastStack() {
+        var stack = document.querySelector(".toast-stack");
+        if (stack) return stack;
+        stack = document.createElement("div");
+        stack.className = "toast-stack";
+        stack.setAttribute("aria-live", "polite");
+        stack.setAttribute("aria-atomic", "true");
+        document.body.appendChild(stack);
+        return stack;
+      }
+
+      function toastClassFromType(type) {
+        var t = String(type || "info").toLowerCase();
+        if (t === "success") return "toast-success";
+        if (t === "error") return "toast-error";
+        if (t === "warning") return "toast-warning";
+        return "toast-info";
+      }
+
+      function autoHideMsFromType(type) {
+        var t = String(type || "info").toLowerCase();
+        if (t === "error") return 7000;
+        if (t === "warning") return 6500;
+        return 4500;
+      }
+
+      function closeToast(node) {
+        if (!node || node.classList.contains("is-closing")) return;
+        node.classList.add("is-closing");
+        window.setTimeout(function () {
+          node.remove();
+        }, 220);
+      }
+
+      function enforceMaxVisible() {
+        var stack = getToastStack();
+        var visible = stack.querySelectorAll("[data-toast]:not(.is-closing)");
+        if (visible.length <= MAX_VISIBLE_TOASTS) return;
+        for (var i = 0; i < (visible.length - MAX_VISIBLE_TOASTS); i += 1) {
+          closeToast(visible[i]);
+        }
+      }
+
+      function wireToast(toast) {
+        var ms = parseInt(toast.getAttribute("data-autohide-ms") || "4500", 10);
+        var closeBtn = toast.querySelector("[data-toast-close]");
+        if (closeBtn) {
+          closeBtn.addEventListener("click", function () {
+            closeToast(toast);
+          });
+        }
+        window.setTimeout(function () {
+          closeToast(toast);
+        }, isNaN(ms) ? 4500 : ms);
+      }
+
+      function pushToast(message, type, ms) {
+        if (!message) return;
+        var stack = getToastStack();
+        var toast = document.createElement("div");
+        toast.className = "toast " + toastClassFromType(type);
+        toast.setAttribute("data-toast", "");
+        toast.setAttribute("role", "status");
+        toast.setAttribute("data-autohide-ms", String(ms || autoHideMsFromType(type)));
+        toast.innerHTML = "<div></div><button class=\"toast-close\" type=\"button\" aria-label=\"Cerrar notificación\" data-toast-close>&times;</button>";
+        toast.querySelector("div").textContent = String(message);
+        stack.appendChild(toast);
+        wireToast(toast);
+        enforceMaxVisible();
+      }
+
+      document.querySelectorAll("[data-toast]").forEach(function (toast) {
+        wireToast(toast);
+      });
+      enforceMaxVisible();
+
+      window.appNotify = function (message, options) {
+        var opts = options || {};
+        pushToast(message, opts.type || "info", opts.ms || null);
+      };
+    })();
+  </script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

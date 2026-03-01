@@ -10,9 +10,13 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import secrets
+import warnings
 from pathlib import Path
+from urllib.parse import parse_qs, unquote, urlparse
 
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -21,16 +25,28 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Load environment variables from .env (development convenience)
 load_dotenv(BASE_DIR / ".env")
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-insecure-secret-key-change-me")
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() == "true"
+
+# SECURITY WARNING: keep the secret key used in production secret!
+_secret_key = os.getenv("DJANGO_SECRET_KEY", "").strip()
+if _secret_key:
+    SECRET_KEY = _secret_key
+elif DEBUG:
+    # Dev-only fallback: ephemeral key to avoid hardcoded secret in repository.
+    SECRET_KEY = "dev-" + secrets.token_urlsafe(48)
+else:
+    raise ImproperlyConfigured("DJANGO_SECRET_KEY is required when DJANGO_DEBUG=False.")
 
 ALLOWED_HOSTS = [
     h.strip()
     for h in os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
     if h.strip()
+]
+CSRF_TRUSTED_ORIGINS = [
+    o.strip()
+    for o in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
+    if o.strip()
 ]
 
 
@@ -70,6 +86,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "booking.context_processors.branding",
             ],
         },
     }
@@ -78,15 +95,70 @@ TEMPLATES = [
 WSGI_APPLICATION = "reservio.wsgi.application"
 
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
-DATABASES = {
-    "default": {
+def _database_config_from_env():
+    sqlite_default = {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
     }
-}
+    database_url = os.getenv("DATABASE_URL", "").strip()
+    if not database_url:
+        return sqlite_default
+
+    parsed = urlparse(database_url)
+    scheme = (parsed.scheme or "").lower()
+    if scheme in {"postgres", "postgresql", "pgsql"}:
+        pg_driver_ok = True
+        try:
+            import psycopg  # noqa: F401
+        except Exception:
+            try:
+                import psycopg2  # noqa: F401
+            except Exception:
+                pg_driver_ok = False
+
+        if not pg_driver_ok:
+            allow_fallback = os.getenv("DB_FALLBACK_TO_SQLITE_IF_PG_DRIVER_MISSING", "True").strip().lower() == "true"
+            if DEBUG and allow_fallback:
+                warnings.warn(
+                    "DATABASE_URL apunta a PostgreSQL, pero no está instalado psycopg/psycopg2. "
+                    "Usando SQLite temporalmente (solo desarrollo). "
+                    "Instala dependencias con: pip install \"psycopg[binary]==3.2.12\"",
+                    RuntimeWarning,
+                )
+                return sqlite_default
+            raise ImproperlyConfigured(
+                "PostgreSQL configurado en DATABASE_URL, pero falta driver psycopg/psycopg2. "
+                "Instala: pip install \"psycopg[binary]==3.2.12\""
+            )
+
+        query = parse_qs(parsed.query or "")
+        conn_max_age = int(os.getenv("DB_CONN_MAX_AGE", "60"))
+        ssl_mode = (query.get("sslmode", [os.getenv("DB_SSLMODE", "require")])[0] or "").strip()
+        config = {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": unquote(parsed.path.lstrip("/")),
+            "USER": unquote(parsed.username or ""),
+            "PASSWORD": unquote(parsed.password or ""),
+            "HOST": parsed.hostname or "",
+            "PORT": str(parsed.port or "5432"),
+            "CONN_MAX_AGE": conn_max_age,
+        }
+        if ssl_mode:
+            config["OPTIONS"] = {"sslmode": ssl_mode}
+        return config
+
+    if scheme in {"sqlite", "sqlite3"}:
+        name = unquote(parsed.path or "").strip()
+        if name.startswith("/"):
+            return {"ENGINE": "django.db.backends.sqlite3", "NAME": name}
+        return {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / (name or "db.sqlite3")}
+
+    raise ImproperlyConfigured(f"Unsupported DATABASE_URL scheme: {scheme}")
+
+
+# Database
+# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+DATABASES = {"default": _database_config_from_env()}
 
 
 # Password validation
@@ -118,6 +190,20 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "static"
 
+# Static storage:
+# - DEBUG=True: simple storage for fast local iteration
+# - DEBUG=False: hashed filenames (Manifest) for cache-safe deploys
+if DEBUG:
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    }
+else:
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"},
+    }
+
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
@@ -129,10 +215,20 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Basic security defaults (recommended). In production, set DJANGO_DEBUG=False and serve over HTTPS.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_SSL_REDIRECT = os.getenv("DJANGO_SECURE_SSL_REDIRECT", "False" if DEBUG else "True").strip().lower() == "true"
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
+SECURE_REFERRER_POLICY = "same-origin"
+
+if not DEBUG:
+    SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_SECURE_HSTS_SECONDS", "31536000"))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv("DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS", "True").strip().lower() == "true"
+    SECURE_HSTS_PRELOAD = os.getenv("DJANGO_SECURE_HSTS_PRELOAD", "True").strip().lower() == "true"
 
 
 # Stripe (Payments)
@@ -154,3 +250,32 @@ PLATFORM_FEE_PERCENT = float(os.getenv("PLATFORM_FEE_PERCENT", "0"))
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/trainer/dashboard/"
 LOGOUT_REDIRECT_URL = "/"
+
+# Email (verification + notifications)
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend").strip()
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Reservio <no-reply@reservio.app>").strip()
+EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost").strip()
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "25"))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "").strip()
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "").strip()
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "False").strip().lower() == "true"
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False").strip().lower() == "true"
+TRAINER_VERIFY_EMAIL_MAX_AGE_SECONDS = int(os.getenv("TRAINER_VERIFY_EMAIL_MAX_AGE_SECONDS", "172800"))
+TRAINER_REQUIRE_EMAIL_VERIFICATION = os.getenv("TRAINER_REQUIRE_EMAIL_VERIFICATION", "True").strip().lower() == "true"
+TRAINER_SEND_TRANSACTIONAL_EMAILS = os.getenv("TRAINER_SEND_TRANSACTIONAL_EMAILS", "True").strip().lower() == "true"
+APP_BASE_URL = os.getenv("APP_BASE_URL", "").strip().rstrip("/")
+EMAIL_BRAND_NAME = os.getenv("EMAIL_BRAND_NAME", "Reserv.io").strip()
+EMAIL_BRAND_URL = os.getenv("EMAIL_BRAND_URL", APP_BASE_URL).strip()
+EMAIL_LOGO_URL = os.getenv("EMAIL_LOGO_URL", "").strip()
+EMAIL_LOGO_FILE = os.getenv("EMAIL_LOGO_FILE", "media/favicon-256.png").strip()
+EMAIL_SUPPORT_EMAIL = os.getenv("EMAIL_SUPPORT_EMAIL", "").strip()
+EMAIL_FOOTER_NOTE = os.getenv("EMAIL_FOOTER_NOTE", "Este correo fue generado automáticamente por Reserv.io.").strip()
+EMAIL_LEGAL_NAME = os.getenv("EMAIL_LEGAL_NAME", EMAIL_BRAND_NAME).strip()
+EMAIL_LEGAL_ADDRESS = os.getenv("EMAIL_LEGAL_ADDRESS", "").strip()
+SITE_FAVICON_URL = os.getenv("SITE_FAVICON_URL", "/media/favicon-256.png").strip()
+
+# Brute-force protection (auth + 2FA)
+AUTH_RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("AUTH_RATE_LIMIT_WINDOW_SECONDS", "300"))  # 5 min
+AUTH_RATE_LIMIT_MAX_ATTEMPTS = int(os.getenv("AUTH_RATE_LIMIT_MAX_ATTEMPTS", "8"))
+TWO_FA_RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("TWO_FA_RATE_LIMIT_WINDOW_SECONDS", "300"))  # 5 min
+TWO_FA_RATE_LIMIT_MAX_ATTEMPTS = int(os.getenv("TWO_FA_RATE_LIMIT_MAX_ATTEMPTS", "8"))

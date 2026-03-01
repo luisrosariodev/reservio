@@ -1,5 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Reserv.io · Your Booking Assistant{% endblock %}
+{% block title %}Reserv.io · Reservas para entrenadores y clientes{% endblock %}
+{% block head %}
+  <link rel="icon" type="image/x-icon" href="/favicon.ico?v=6">
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=6">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ SITE_FAVICON_URL|default:'/media/favicon-256.png' }}?v=6">
+{% endblock %}
 
 {% block main %}
 <div class="page-center">
@@ -7,22 +12,26 @@
 
     <h1 style="margin:0 0 12px 0;">Reserv.io</h1>
     <p style="margin:0 0 32px 0; color:var(--text-muted);">
-      Book training sessions without the back-and-forth.
+      Reserva sesiones sin fricción. Entrenadores y clientes en un mismo flujo.
     </p>
 
     <div style="display:grid; gap:16px;">
       <a class="btn btn-primary" href="{% url 'booking:trainer_list' %}">
-        Find a trainer
+        Ver entrenadores
       </a>
 
       <a class="btn" href="{% url 'booking:trainer_access' %}">
-        I’m a personal trainer
+        Soy entrenador personal
+      </a>
+
+      <a class="btn" href="{% url 'booking:client_portal_access' %}">
+        Soy cliente
       </a>
     </div>
 
     <div style="margin-top:28px; font-size:14px;">
-      Already have an account?
-      <a class="link" href="{% url 'login' %}">Sign in</a>
+      ¿Ya tienes cuenta?
+      <a class="link" href="{% url 'login' %}">Iniciar sesión</a>
     </div>
 
   </div>

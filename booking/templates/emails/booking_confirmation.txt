@@ -1,0 +1,20 @@
+{% extends "emails/base.txt" %}
+{% block content %}
+Reserva confirmada
+
+Hola {{ client_name }}, tu reserva con {{ trainer_name }} fue procesada correctamente.
+
+Código: #{{ checkout_code }}
+Total pagado: {{ total_paid }}
+Descuento: {{ discount_amount }}
+Código de descuento: {{ discount_code }}
+
+Sesiones:
+{% for item in session_items %}
+- {{ item.when }} | Asistente: {{ item.attendee }} | {{ item.amount }}
+{% empty %}
+- No hay sesiones en esta reserva.
+{% endfor %}
+
+Adjuntamos tu invoice en PDF para referencia.
+{% endblock %}

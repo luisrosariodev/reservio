@@ -1,0 +1,18 @@
+{% extends "emails/base.html" %}
+{% block title %}Confirma tu correo en Reserv.io{% endblock %}
+{% block content %}
+<h1 style="margin:0 0 8px 0;font-size:30px;line-height:1.15;font-weight:800;color:#004e54;">Confirma tu correo</h1>
+<p style="margin:0 0 16px 0;font-size:18px;line-height:1.5;color:#3d4a5c;">
+  Hola{% if trainer_name %}, {{ trainer_name }}{% endif %}. Para activar tu cuenta de entrenador, confirma tu correo.
+</p>
+<p style="margin:0 0 22px 0;">
+  <a href="{{ verify_link }}" style="display:inline-block;background:#004e54;color:#ffffff;text-decoration:none;font-weight:700;font-size:16px;padding:12px 18px;border-radius:12px;">
+    Verificar correo
+  </a>
+</p>
+<p style="margin:0;font-size:14px;line-height:1.6;color:#637085;">
+  Si el botón no funciona, copia y pega este enlace en tu navegador:
+  <br>
+  <a href="{{ verify_link }}" style="color:#0b8f83;text-decoration:underline;">{{ verify_link }}</a>
+</p>
+{% endblock %}

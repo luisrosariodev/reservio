@@ -1,0 +1,376 @@
+.rio-auth-card {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 34px;
+}
+
+.rio-auth-card-sm {
+  max-width: 640px;
+}
+
+.rio-access-card {
+  max-width: 700px;
+  padding: 38px 40px;
+}
+
+.rio-choice-card {
+  max-width: 760px;
+  padding: 52px 48px 46px;
+  border-radius: 30px;
+}
+
+.rio-choice-center {
+  text-align: center;
+}
+
+.rio-choice-brand {
+  margin: 0;
+  font-size: clamp(2.4rem, 4.8vw, 3.4rem);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.rio-choice-subtitle {
+  margin: 18px auto 0;
+  max-width: 30ch;
+  font-size: clamp(1.25rem, 2.1vw, 1.95rem);
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.rio-choice-actions {
+  display: grid;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.rio-choice-btn {
+  width: 100%;
+  min-height: 58px;
+  border-radius: 22px;
+  font-size: clamp(1.15rem, 1.65vw, 1.55rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.rio-choice-login {
+  margin-top: 22px;
+  font-size: clamp(1rem, 1.25vw, 1.2rem);
+  color: var(--text);
+}
+
+.rio-choice-login a {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.rio-choice-login a:hover {
+  text-decoration: underline;
+}
+
+.rio-auth-card-lg {
+  max-width: 980px;
+}
+
+.rio-auth-center {
+  text-align: center;
+}
+
+.rio-auth-title {
+  margin: 0;
+  font-size: clamp(2rem, 3.6vw, 2.6rem);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.rio-auth-subtitle {
+  margin: 10px 0 0;
+  opacity: 0.82;
+  font-size: 1.05rem;
+}
+
+.rio-access-card .rio-auth-title {
+  font-size: clamp(2rem, 3.2vw, 3rem);
+  line-height: 1.08;
+}
+
+.rio-access-card .rio-auth-subtitle {
+  margin-top: 12px;
+  max-width: 52ch;
+}
+
+.rio-form {
+  display: grid;
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.rio-field {
+  display: grid;
+  gap: 10px;
+}
+
+.rio-label {
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.rio-hint {
+  margin: 0;
+  opacity: 0.78;
+  font-size: 0.95rem;
+}
+
+.rio-form input[type="text"],
+.rio-form input[type="email"],
+.rio-form input[type="password"],
+.rio-form input[type="tel"],
+.rio-form input[type="url"],
+.rio-form textarea,
+.rio-form select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 14px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--fieldBorder) !important;
+  background: var(--fieldBg) !important;
+  box-shadow: var(--fieldShadow);
+  color: inherit;
+  font-size: 15px;
+  line-height: 1.2;
+  font-family: inherit;
+  outline: none;
+}
+
+.rio-form input[type="text"]:disabled,
+.rio-form input[type="email"]:disabled,
+.rio-form input[type="password"]:disabled,
+.rio-form input[type="tel"]:disabled,
+.rio-form input[type="url"]:disabled,
+.rio-form textarea:disabled,
+.rio-form select:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.rio-form input::placeholder {
+  opacity: 0.55;
+}
+
+.rio-form input:-webkit-autofill,
+.rio-form input:-webkit-autofill:hover,
+.rio-form input:-webkit-autofill:focus {
+  -webkit-text-fill-color: inherit;
+  -webkit-box-shadow: 0 0 0 1000px var(--fieldBg) inset;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+.rio-form input:focus,
+.rio-form textarea:focus,
+.rio-form select:focus {
+  border-color: rgba(var(--accentRgb), 0.55);
+  box-shadow: var(--fieldShadow), 0 0 0 4px var(--accentSoft);
+}
+
+.rio-errors ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rio-errors li {
+  margin: 0;
+}
+
+.rio-actions {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.rio-actions-inline {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rio-actions-center {
+  justify-content: center;
+}
+
+.rio-stack {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.rio-access-actions {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.rio-access-actions .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.rio-access-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.rio-access-row .btn {
+  min-height: 42px;
+}
+
+.rio-access-note {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.rio-access-switch {
+  margin-top: 18px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.rio-grid-two {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  margin-top: 18px;
+}
+
+.rio-block-card {
+  padding: 18px;
+}
+
+.rio-section-title {
+  margin: 0 0 8px 0;
+}
+
+.rio-section-subtitle {
+  margin: 0 0 14px 0;
+}
+
+.rio-mt-18 {
+  margin-top: 18px;
+}
+
+.rio-mb-14 {
+  margin-bottom: 14px;
+}
+
+.rio-actions .btn,
+.rio-actions button.btn {
+  width: 100%;
+  justify-content: center;
+  padding: 14px 16px;
+  border-radius: 16px;
+  white-space: normal;
+  text-align: center;
+}
+
+.rio-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.rio-actions button.btn {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid transparent;
+}
+
+.rio-actions .btn.btn-primary,
+.rio-actions button.btn.btn-primary {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: #fff !important;
+}
+
+.rio-actions .btn.btn-primary:hover,
+.rio-actions button.btn.btn-primary:hover {
+  background: var(--primaryHover) !important;
+  border-color: var(--primaryHover) !important;
+}
+
+.rio-actions .btn.btn-secondary,
+.rio-actions button.btn.btn-secondary {
+  background: transparent;
+}
+
+.rio-errors {
+  margin: 0;
+  opacity: 0.9;
+}
+
+@media (prefers-color-scheme: dark) {
+  .rio-form input[type="text"],
+  .rio-form input[type="email"],
+  .rio-form input[type="password"],
+  .rio-form input[type="tel"],
+  .rio-form input[type="url"],
+  .rio-form textarea,
+  .rio-form select {
+    border: 1px solid var(--fieldBorder) !important;
+    background: var(--fieldBg) !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .rio-auth-card {
+    padding: 22px;
+  }
+
+  .rio-access-card {
+    padding: 24px 22px;
+  }
+
+  .rio-form {
+    gap: 16px;
+  }
+
+  .rio-access-row {
+    gap: 10px;
+  }
+
+  .rio-choice-card {
+    padding: 34px 22px 30px;
+    border-radius: 24px;
+  }
+
+  .rio-choice-subtitle {
+    margin-top: 16px;
+    max-width: 26ch;
+    font-size: clamp(1.2rem, 5.4vw, 1.55rem);
+  }
+
+  .rio-choice-actions {
+    margin-top: 26px;
+    gap: 12px;
+  }
+
+  .rio-choice-btn {
+    min-height: 56px;
+    border-radius: 20px;
+    font-size: 1.25rem;
+  }
+
+  .rio-choice-login {
+    margin-top: 22px;
+    font-size: 1.02rem;
+  }
+}

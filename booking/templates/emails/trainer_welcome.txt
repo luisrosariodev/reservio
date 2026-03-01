@@ -1,0 +1,9 @@
+{% extends "emails/base.txt" %}
+{% block content %}
+Cuenta activa
+
+Hola{% if trainer_name %}, {{ trainer_name }}{% endif %}. Tu cuenta de entrenador ya está lista.
+Ir al dashboard: {{ portal_url }}
+
+Ahora puedes configurar disponibilidad, pagos y gestionar tus reservas.
+{% endblock %}

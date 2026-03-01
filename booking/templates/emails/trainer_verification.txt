@@ -1,0 +1,7 @@
+{% extends "emails/base.txt" %}
+{% block content %}
+Confirma tu correo
+
+Hola{% if trainer_name %}, {{ trainer_name }}{% endif %}. Para activar tu cuenta de entrenador, confirma tu correo aquí:
+{{ verify_link }}
+{% endblock %}
