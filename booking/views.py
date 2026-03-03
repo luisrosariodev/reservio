@@ -4,6 +4,7 @@ import logging
 import csv
 import os
 import time
+import threading
 from email.mime.image import MIMEImage
 
 import stripe
@@ -609,6 +610,19 @@ def _send_checkout_confirmation_email(checkout):
     if updated:
         checkout.refresh_from_db(fields=["confirmation_email_sent_at"])
     return bool(updated)
+
+
+def _send_checkout_confirmation_email_async(checkout_id):
+    """Best-effort async email send to keep webhooks fast and resilient."""
+    def _worker():
+        try:
+            checkout = Checkout.objects.filter(id=checkout_id).first()
+            if checkout:
+                _send_checkout_confirmation_email(checkout)
+        except Exception:
+            logger.exception("No se pudo enviar email async checkout_id=%s", checkout_id)
+
+    threading.Thread(target=_worker, daemon=True).start()
 
 
 def _validate_trainer_coupon(*, trainer, coupon_code_input):
@@ -1427,10 +1441,7 @@ def stripe_webhook_view(request):
             if updated_fields:
                 checkout.save(update_fields=list(dict.fromkeys(updated_fields)))
             if checkout.status == Checkout.STATUS_CONFIRMED:
-                try:
-                    _send_checkout_confirmation_email(checkout)
-                except Exception:
-                    logger.exception("No se pudo enviar email de confirmacion checkout_id=%s", checkout.id)
+                _send_checkout_confirmation_email_async(checkout.id)
 
     webhook_log.processed_ok = True
     webhook_log.error_message = ""

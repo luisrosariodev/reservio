@@ -312,6 +312,7 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "").strip()
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "").strip()
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "False").strip().lower() == "true"
 EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False").strip().lower() == "true"
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
 TRAINER_VERIFY_EMAIL_MAX_AGE_SECONDS = int(os.getenv("TRAINER_VERIFY_EMAIL_MAX_AGE_SECONDS", "172800"))
 TRAINER_REQUIRE_EMAIL_VERIFICATION = os.getenv("TRAINER_REQUIRE_EMAIL_VERIFICATION", "True").strip().lower() == "true"
 TRAINER_SEND_TRANSACTIONAL_EMAILS = os.getenv("TRAINER_SEND_TRANSACTIONAL_EMAILS", "True").strip().lower() == "true"
