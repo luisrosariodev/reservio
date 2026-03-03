@@ -55,9 +55,21 @@ def _stripe_secret_key() -> str:
     return str(getattr(settings, "STRIPE_SECRET_KEY", "") or "").strip()
 
 
+def _is_placeholder_key(value: str) -> bool:
+    v = (value or "").strip().lower()
+    if not v:
+        return False
+    return (
+        v.endswith("_xxx")
+        or "replace-with" in v
+        or v in {"sk_live_xxx", "pk_live_xxx", "sk_test_xxx", "pk_test_xxx", "whsec_xxx"}
+    )
+
+
 def _require_stripe() -> None:
     """Raise a clear error if Stripe is not configured."""
-    if not _stripe_secret_key():
+    key = _stripe_secret_key()
+    if (not key) or _is_placeholder_key(key):
         raise ServiceUserError(
             "Stripe no está configurado todavía. Intenta más tarde.",
             debug_message="Missing STRIPE_SECRET_KEY",
@@ -397,10 +409,16 @@ def create_stripe_checkout_session(
                 "transfer_data": {"destination": str(trainer.stripe_account_id)},
             },
         )
+    except stripe.error.AuthenticationError as e:
+        raise ServiceUserError(
+            "Pago con tarjeta no disponible por configuración de Stripe. Intenta con ATH Móvil o más tarde.",
+            debug_message=str(e),
+        ) from e
     except stripe.error.StripeError as e:
-        # Prefer Stripe's user_message if present; otherwise show a generic message.
-        user_msg = getattr(e, "user_message", None) or "No pudimos iniciar el pago con Stripe ahora mismo."
-        raise ServiceUserError(user_msg, debug_message=str(e)) from e
+        raise ServiceUserError(
+            "No pudimos iniciar el pago con Stripe ahora mismo.",
+            debug_message=str(e),
+        ) from e
 
     trainer_net_amount = (total_amount - platform_fee_amount).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     checkout.stripe_session_id = session.id

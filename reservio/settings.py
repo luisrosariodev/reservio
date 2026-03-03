@@ -272,8 +272,25 @@ STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "").strip()
 # Webhook signing secret (whsec_...) comes from Stripe CLI `stripe listen` or from Dashboard > Developers > Webhooks.
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "").strip()
 
+# Detect common placeholder values copied from sample env files.
+def _is_placeholder_key(value: str) -> bool:
+    v = (value or "").strip().lower()
+    if not v:
+        return False
+    return (
+        v.endswith("_xxx")
+        or "replace-with" in v
+        or v in {"sk_live_xxx", "pk_live_xxx", "sk_test_xxx", "pk_test_xxx", "whsec_xxx"}
+    )
+
+
 # Optional: use Stripe test mode safely (keys control behavior)
-STRIPE_IS_CONFIGURED = bool(STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY)
+STRIPE_IS_CONFIGURED = bool(
+    STRIPE_SECRET_KEY
+    and STRIPE_PUBLISHABLE_KEY
+    and not _is_placeholder_key(STRIPE_SECRET_KEY)
+    and not _is_placeholder_key(STRIPE_PUBLISHABLE_KEY)
+)
 
 # Platform commission (global for all trainers)
 # Percentage fee taken by Reserv.io from each successful payment.
@@ -307,7 +324,12 @@ EMAIL_SUPPORT_EMAIL = os.getenv("EMAIL_SUPPORT_EMAIL", "").strip()
 EMAIL_FOOTER_NOTE = os.getenv("EMAIL_FOOTER_NOTE", "Este correo fue generado automáticamente por Reserv.io.").strip()
 EMAIL_LEGAL_NAME = os.getenv("EMAIL_LEGAL_NAME", EMAIL_BRAND_NAME).strip()
 EMAIL_LEGAL_ADDRESS = os.getenv("EMAIL_LEGAL_ADDRESS", "").strip()
-SITE_FAVICON_URL = os.getenv("SITE_FAVICON_URL", "/media/favicon-256.png").strip()
+SITE_FAVICON_URL = os.getenv("SITE_FAVICON_URL", "/static/img/favicon-256.png").strip()
+
+# In production, default to static branding assets so WhiteNoise can serve them.
+# /media is often not exposed unless a separate media service is configured.
+if not DEBUG and SITE_FAVICON_URL.startswith("/media/"):
+    SITE_FAVICON_URL = "/static/img/favicon-256.png"
 
 # Brute-force protection (auth + 2FA)
 AUTH_RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("AUTH_RATE_LIMIT_WINDOW_SECONDS", "300"))  # 5 min

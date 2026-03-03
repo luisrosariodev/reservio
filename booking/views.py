@@ -347,7 +347,7 @@ def _send_templated_email(*, subject, to, text_template, html_template, context,
     brand_url = (getattr(settings, "EMAIL_BRAND_URL", "") or "").strip() or app_base_url
     logo_url_raw = (getattr(settings, "EMAIL_LOGO_URL", "") or "").strip()
     logo_file_raw = (getattr(settings, "EMAIL_LOGO_FILE", "") or "").strip()
-    site_favicon_url = (getattr(settings, "SITE_FAVICON_URL", "") or "").strip() or "/media/favicon-256.png"
+    site_favicon_url = (getattr(settings, "SITE_FAVICON_URL", "") or "").strip() or "/static/img/favicon-256.png"
     if logo_url_raw.startswith("http://") or logo_url_raw.startswith("https://"):
         logo_url = logo_url_raw
     elif logo_url_raw.startswith("/") and app_base_url:
@@ -359,7 +359,7 @@ def _send_templated_email(*, subject, to, text_template, html_template, context,
     elif site_favicon_url.startswith("http://") or site_favicon_url.startswith("https://"):
         logo_url = site_favicon_url
     elif app_base_url:
-        logo_url = f"{app_base_url}/media/favicon-256.png"
+        logo_url = f"{app_base_url}/static/img/favicon-256.png"
     else:
         logo_url = ""
     support_email = (getattr(settings, "EMAIL_SUPPORT_EMAIL", "") or "").strip()

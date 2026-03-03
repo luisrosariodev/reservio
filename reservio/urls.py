@@ -13,7 +13,7 @@ from booking.views import (
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("favicon.ico", RedirectView.as_view(url="/media/favicon.ico", permanent=False)),
+    path("favicon.ico", RedirectView.as_view(url="/static/img/favicon.ico", permanent=False)),
     path("accounts/login/", TrainerAwareLoginView.as_view(), name="login"),
     path("accounts/password_reset/", PortalAwarePasswordResetView.as_view(), name="password_reset"),
     path("accounts/password_reset/done/", PortalAwarePasswordResetDoneView.as_view(), name="password_reset_done"),
