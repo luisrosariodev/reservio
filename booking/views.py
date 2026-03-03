@@ -5,8 +5,10 @@ import csv
 import os
 import time
 import threading
+import base64
 from email.mime.image import MIMEImage
 
+import requests
 import stripe
 
 from django.conf import settings
@@ -381,34 +383,79 @@ def _send_templated_email(*, subject, to, text_template, html_template, context,
         **(context or {}),
     }
 
+    use_resend_api = bool((getattr(settings, "RESEND_API_KEY", "") or "").strip())
     text_body = render_to_string(text_template, merged_context)
-    # Inline logo for better compatibility (especially local/dev and strict email clients).
     logo_cid = ""
     logo_part = None
-    logo_candidate_paths = []
-    if logo_file_raw:
-        if os.path.isabs(logo_file_raw):
-            logo_candidate_paths.append(logo_file_raw)
-        else:
-            logo_candidate_paths.append(os.path.join(settings.BASE_DIR, logo_file_raw))
-    if site_favicon_url.startswith("/media/"):
-        logo_candidate_paths.append(os.path.join(settings.MEDIA_ROOT, site_favicon_url.removeprefix("/media/")))
-    logo_candidate_paths.append(os.path.join(settings.MEDIA_ROOT, "favicon-256.png"))
+    if not use_resend_api:
+        # Inline logo for better compatibility with SMTP clients.
+        logo_candidate_paths = []
+        if logo_file_raw:
+            if os.path.isabs(logo_file_raw):
+                logo_candidate_paths.append(logo_file_raw)
+            else:
+                logo_candidate_paths.append(os.path.join(settings.BASE_DIR, logo_file_raw))
+        if site_favicon_url.startswith("/media/"):
+            logo_candidate_paths.append(os.path.join(settings.MEDIA_ROOT, site_favicon_url.removeprefix("/media/")))
+        logo_candidate_paths.append(os.path.join(settings.MEDIA_ROOT, "favicon-256.png"))
 
-    for candidate in logo_candidate_paths:
-        try:
-            if candidate and os.path.exists(candidate):
-                with open(candidate, "rb") as fh:
-                    logo_part = MIMEImage(fh.read())
-                logo_cid = "reservio-logo"
-                logo_part.add_header("Content-ID", f"<{logo_cid}>")
-                logo_part.add_header("Content-Disposition", "inline", filename=os.path.basename(candidate))
-                break
-        except Exception:
-            continue
+        for candidate in logo_candidate_paths:
+            try:
+                if candidate and os.path.exists(candidate):
+                    with open(candidate, "rb") as fh:
+                        logo_part = MIMEImage(fh.read())
+                    logo_cid = "reservio-logo"
+                    logo_part.add_header("Content-ID", f"<{logo_cid}>")
+                    logo_part.add_header("Content-Disposition", "inline", filename=os.path.basename(candidate))
+                    break
+            except Exception:
+                continue
 
     merged_context["email_logo_cid"] = logo_cid
     html_body = render_to_string(html_template, merged_context)
+
+    if use_resend_api:
+        resend_key = (getattr(settings, "RESEND_API_KEY", "") or "").strip()
+        resend_url = (getattr(settings, "RESEND_API_URL", "https://api.resend.com/emails") or "").strip()
+        timeout = int(getattr(settings, "EMAIL_TIMEOUT", 10) or 10)
+
+        resend_attachments = []
+        for attachment in attachments or []:
+            filename, content, _mimetype = attachment
+            if isinstance(content, str):
+                content_bytes = content.encode("utf-8")
+            else:
+                content_bytes = content
+            resend_attachments.append(
+                {
+                    "filename": filename,
+                    "content": base64.b64encode(content_bytes).decode("ascii"),
+                }
+            )
+
+        payload = {
+            "from": getattr(settings, "DEFAULT_FROM_EMAIL", None),
+            "to": to,
+            "subject": subject,
+            "html": html_body,
+            "text": text_body,
+        }
+        if resend_attachments:
+            payload["attachments"] = resend_attachments
+
+        response = requests.post(
+            resend_url,
+            headers={
+                "Authorization": f"Bearer {resend_key}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=timeout,
+        )
+        if response.status_code >= 400:
+            raise RuntimeError(f"Resend API error {response.status_code}: {response.text[:300]}")
+        return
+
     email = EmailMultiAlternatives(
         subject=subject,
         body=text_body,
