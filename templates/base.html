@@ -7,8 +7,8 @@
   <title>{% block title %}Reserv.io{% endblock %}</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico?v=5">
   <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5">
-  <link rel="icon" type="image/png" sizes="32x32" href="{{ SITE_FAVICON_URL|default:'/static/img/favicon-256.png' }}?v=5">
-  <link rel="apple-touch-icon" href="{{ SITE_FAVICON_URL|default:'/static/img/favicon-256.png' }}?v=5">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ SITE_FAVICON_URL }}?v=5">
+  <link rel="apple-touch-icon" href="{{ SITE_FAVICON_URL }}?v=5">
 
   <link rel="stylesheet" href="{% static 'css/base.css' %}">
   <link rel="stylesheet" href="{% static 'css/components.css' %}">
@@ -17,12 +17,44 @@
     /* Prevent desktop + mobile header content from showing at the same time */
     .desktop-only { display: flex; align-items: center; gap: 12px; }
     .mobile-only { display: none; }
-    .mobile-nav { display: none; }
+    .mobile-shell { position: relative; margin-left: auto; }
+    .nav-toggle {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .mobile-shell .mobile-nav {
+      display: none;
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      width: min(340px, calc(100vw - 24px));
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--cardSolid);
+      box-shadow: var(--shadow-soft);
+      padding: 10px;
+      z-index: 80;
+    }
+    .mobile-shell .mobile-nav-inner { display: grid; gap: 10px; }
+    .mobile-shell .mobile-nav-links,
+    .mobile-shell .mobile-nav-actions { display: grid; gap: 8px; }
+    .mobile-shell .mobile-nav .nav-link {
+      display: block;
+      height: auto;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg2);
+    }
+    .mobile-shell .mobile-nav .btn { width: 100%; justify-content: center; }
+    .mobile-shell .nav-toggle:checked ~ .mobile-nav { display: block; }
 
     @media (max-width: 860px) {
       .desktop-only { display: none !important; }
       .mobile-only { display: flex; align-items: center; }
-      .nav-toggle:checked ~ .mobile-only .mobile-nav { display: block; }
     }
 
     .portal-header-badge{
@@ -76,13 +108,13 @@
     }
 
     .footer-simple-inner{
-      padding: 56px 0 32px;
+      padding: 42px 0 24px;
     }
 
     .footer-simple-grid{
       display: grid;
       grid-template-columns: 1.2fr 1fr 1fr 1fr;
-      gap: 44px;
+      gap: 30px;
       align-items: start;
     }
 
@@ -100,8 +132,8 @@
     }
 
     .footer-simple-link{
-      display: inline-block;
-      padding: 8px 0;
+      display: block;
+      padding: 6px 0;
       color: var(--text, rgba(0,0,0,.78));
       text-decoration: none;
     }
@@ -120,8 +152,8 @@
     }
 
     .footer-simple-bottom{
-      margin-top: 38px;
-      padding-top: 26px;
+      margin-top: 24px;
+      padding-top: 16px;
       border-top: 1px solid var(--border, rgba(0,0,0,.08));
       display: flex;
       align-items: center;
@@ -130,18 +162,20 @@
       color: var(--muted, rgba(0,0,0,.62));
     }
 
-    @media (max-width: 980px){
+    @media (max-width: 1100px){
       .footer-simple-grid{ grid-template-columns: 1fr 1fr; }
-      .footer-simple-note{ max-width: 40ch; }
+      .footer-simple-note{ max-width: 36ch; }
     }
 
-    @media (max-width: 560px){
-      .footer-simple-inner{ padding: 44px 0 26px; }
-      .footer-simple-grid{ grid-template-columns: 1fr; gap: 28px; }
-      .footer-simple-note{ max-width: 42ch; }
+    @media (max-width: 860px){
+      .footer-simple-inner{ padding: 34px 0 18px; }
+      .footer-simple-grid{ grid-template-columns: 1fr; gap: 20px; }
+      .footer-simple-note{ max-width: 32ch; }
+      .footer-simple-title{ margin-bottom: 8px; }
     }
     @media (max-width: 720px){
       .footer-simple-bottom{ flex-direction: column; text-align: center; }
+      .footer-simple-bottom [aria-hidden="true"]{ display: none; }
     }
 
     /* =============================
@@ -252,17 +286,55 @@
       <a class="brand site-brand" href="{% if request.session.trainer_portal_mode %}{% url 'booking:trainer_portal_exit' %}{% else %}{% url 'booking:home_io' %}{% endif %}" aria-label="Inicio de Reserv.io">
       {% endif %}
         <span class="brand-mark" aria-hidden="true">
-          <img src="{{ SITE_FAVICON_URL|default:'/static/img/favicon-256.png' }}" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:0;display:block;">
+          <img src="{{ SITE_FAVICON_URL }}" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:0;display:block;">
         </span>
         <span class="brand-name">Reserv.io</span>
       </a>
 
-      <div class="mobile-only">
+      <div class="mobile-only mobile-shell">
         <!-- Mobile nav toggle (CSS-only) -->
         <input class="nav-toggle" type="checkbox" id="nav-toggle" aria-label="Abrir menú" />
         <label class="nav-toggle-btn menu-toggle" for="nav-toggle" aria-hidden="true">
-          <span></span><span></span><span></span>
+          <span></span>
         </label>
+        <!-- Mobile menu panel (same links + actions) -->
+        <div class="mobile-nav" role="dialog" aria-label="Menú" aria-modal="true">
+          <div class="mobile-nav-inner">
+            {% if current_url == 'trainer_portal' or current_url == 'client_portal_dashboard' or current_url == 'client_reschedule_reservation' or current_url == 'account_portal_home' or current_url == 'account_mode_select' or current_url == 'account_role_management' %}
+            <div class="mobile-nav-links">
+              <a class="nav-link" href="{% url 'booking:account_portal_home' %}" onclick="document.getElementById('nav-toggle').checked=false">Mi portal</a>
+              <a class="nav-link" href="{% url 'booking:account_role_management' %}" onclick="document.getElementById('nav-toggle').checked=false">Mi cuenta</a>
+            </div>
+
+            <div class="mobile-nav-actions">
+              <form method="post" action="{% url 'logout' %}" class="inline-form">
+                {% csrf_token %}
+                <button class="btn btn-ghost" type="submit">Cerrar sesión</button>
+              </form>
+            </div>
+            {% else %}
+            <div class="mobile-nav-links">
+              <a class="nav-link" href="{% if request.session.trainer_portal_mode %}{% url 'booking:trainer_portal_exit' %}{% else %}{% url 'booking:home_io' %}{% endif %}" onclick="document.getElementById('nav-toggle').checked=false">Inicio</a>
+              <a class="nav-link" href="{% url 'booking:trainer_list' %}" onclick="document.getElementById('nav-toggle').checked=false">Entrenadores</a>
+              <a class="nav-link" href="{% url 'booking:home_io' %}#how" onclick="document.getElementById('nav-toggle').checked=false">Cómo funciona</a>
+              <a class="nav-link" href="{% url 'booking:home_io' %}#trainers" onclick="document.getElementById('nav-toggle').checked=false">Destacados</a>
+            </div>
+
+            <div class="mobile-nav-actions">
+              {% if request.user.is_authenticated %}
+                <a class="btn btn-ghost" href="{% url 'booking:account_portal_home' %}" onclick="document.getElementById('nav-toggle').checked=false">Mi panel</a>
+                <form method="post" action="{% url 'logout' %}" class="inline-form">
+                  {% csrf_token %}
+                  <button class="btn btn-ghost" type="submit">Cerrar sesión</button>
+                </form>
+              {% else %}
+                <a class="btn btn-ghost" href="{% url 'login' %}" onclick="document.getElementById('nav-toggle').checked=false">Iniciar sesión</a>
+                <a class="btn btn-primary" href="{% url 'booking:trainer_access' %}" onclick="document.getElementById('nav-toggle').checked=false">Comenzar</a>
+              {% endif %}
+            </div>
+            {% endif %}
+          </div>
+        </div>
       </div>
 
       <div class="desktop-only portal-header-center">
@@ -304,47 +376,6 @@
         </div>
         {% endif %}
       </div>
-
-      <div class="mobile-only">
-        <!-- Mobile menu panel (same links + actions) -->
-        <div class="mobile-nav" role="dialog" aria-label="Menú" aria-modal="true">
-          <div class="mobile-nav-inner">
-            {% if current_url == 'trainer_portal' or current_url == 'client_portal_dashboard' or current_url == 'client_reschedule_reservation' or current_url == 'account_portal_home' or current_url == 'account_mode_select' or current_url == 'account_role_management' %}
-            <div class="mobile-nav-links">
-              <a class="nav-link" href="{% url 'booking:account_portal_home' %}" onclick="document.getElementById('nav-toggle').checked=false">Mi portal</a>
-              <a class="nav-link" href="{% url 'booking:account_role_management' %}" onclick="document.getElementById('nav-toggle').checked=false">Mi cuenta</a>
-            </div>
-
-            <div class="mobile-nav-actions">
-              <form method="post" action="{% url 'logout' %}" class="inline-form">
-                {% csrf_token %}
-                <button class="btn btn-ghost" type="submit">Cerrar sesión</button>
-              </form>
-            </div>
-            {% else %}
-            <div class="mobile-nav-links">
-              <a class="nav-link" href="{% if request.session.trainer_portal_mode %}{% url 'booking:trainer_portal_exit' %}{% else %}{% url 'booking:home_io' %}{% endif %}" onclick="document.getElementById('nav-toggle').checked=false">Inicio</a>
-              <a class="nav-link" href="{% url 'booking:trainer_list' %}" onclick="document.getElementById('nav-toggle').checked=false">Entrenadores</a>
-              <a class="nav-link" href="{% url 'booking:home_io' %}#how" onclick="document.getElementById('nav-toggle').checked=false">Cómo funciona</a>
-              <a class="nav-link" href="{% url 'booking:home_io' %}#trainers" onclick="document.getElementById('nav-toggle').checked=false">Destacados</a>
-            </div>
-
-            <div class="mobile-nav-actions">
-              {% if request.user.is_authenticated %}
-                <a class="btn btn-ghost" href="{% url 'booking:account_portal_home' %}" onclick="document.getElementById('nav-toggle').checked=false">Mi panel</a>
-                <form method="post" action="{% url 'logout' %}" class="inline-form">
-                  {% csrf_token %}
-                  <button class="btn btn-ghost" type="submit">Cerrar sesión</button>
-                </form>
-              {% else %}
-                <a class="btn btn-ghost" href="{% url 'login' %}" onclick="document.getElementById('nav-toggle').checked=false">Iniciar sesión</a>
-                <a class="btn btn-primary" href="{% url 'booking:trainer_access' %}" onclick="document.getElementById('nav-toggle').checked=false">Comenzar</a>
-              {% endif %}
-            </div>
-            {% endif %}
-          </div>
-        </div>
-      </div>
       {% endwith %}
     </div>
   </header>
@@ -380,7 +411,7 @@
         <div class="footer-simple-brand">
           <div class="brand site-brand">
             <span class="brand-mark" aria-hidden="true">
-              <img src="{{ SITE_FAVICON_URL|default:'/static/img/favicon-256.png' }}" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:0;display:block;">
+              <img src="{{ SITE_FAVICON_URL }}" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:0;display:block;">
             </span>
             <span class="brand-name">Reserv.io</span>
           </div>
