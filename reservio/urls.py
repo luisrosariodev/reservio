@@ -2,7 +2,6 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.templatetags.static import static as static_url
 from django.views.generic.base import RedirectView
 from booking.views import (
     TrainerAwareLoginView,
@@ -14,7 +13,8 @@ from booking.views import (
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("favicon.ico", RedirectView.as_view(url=static_url("img/favicon.ico"), permanent=False)),
+    # Keep this path manifest-agnostic so startup checks don't crash before staticfiles are ready.
+    path("favicon.ico", RedirectView.as_view(url="/static/img/favicon.ico", permanent=False)),
     path("accounts/login/", TrainerAwareLoginView.as_view(), name="login"),
     path("accounts/password_reset/", PortalAwarePasswordResetView.as_view(), name="password_reset"),
     path("accounts/password_reset/done/", PortalAwarePasswordResetDoneView.as_view(), name="password_reset_done"),
