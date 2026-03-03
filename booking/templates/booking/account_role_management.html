@@ -86,29 +86,24 @@
 
       <h3 class="rio-section-title">Autenticación en dos pasos (2FA)</h3>
       <p class="hint rio-section-subtitle">
-        {% if two_fa_enabled %}
-          Activa. Códigos de respaldo disponibles: <strong>{{ backup_codes_count }}</strong>.
+        {% if two_fa_method == "off" %}
+          2FA está desactivado por configuración del sistema.
+        {% elif two_fa_enabled %}
+          Activa. Te pediremos un código por email al iniciar sesión.
         {% else %}
-          Añade una capa extra de seguridad con Google Authenticator, Authy o 1Password.
+          Añade una capa extra de seguridad con un código temporal enviado por email.
         {% endif %}
       </p>
 
+      {% if two_fa_method != "off" %}
       <div class="rio-actions-inline rio-mb-14">
         <a class="btn btn-primary" href="{% url 'booking:account_two_factor_setup' %}">
           {% if two_fa_enabled %}Gestionar 2FA{% else %}Activar 2FA{% endif %}
         </a>
       </div>
+      {% endif %}
 
-      {% if two_fa_enabled %}
-      <form method="post" action="{% url 'booking:account_two_factor_regenerate_codes' %}" class="rio-form rio-mb-14" data-submit-lock data-submit-text="Regenerando...">
-        {% csrf_token %}
-        <div class="rio-field">
-          <label class="rio-label" for="id_2fa_regen_password">Contraseña actual (para regenerar códigos)</label>
-          <input id="id_2fa_regen_password" name="confirm_password" class="ui-input" type="password" placeholder="Tu contraseña" required>
-        </div>
-        <button type="submit" class="btn">Regenerar códigos de respaldo</button>
-      </form>
-
+      {% if two_fa_enabled and two_fa_method != "off" %}
       <form method="post" action="{% url 'booking:account_two_factor_disable' %}" class="rio-form rio-mb-14" data-submit-lock data-submit-text="Desactivando...">
         {% csrf_token %}
         <div class="rio-field">

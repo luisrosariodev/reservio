@@ -11,24 +11,30 @@
   <div class="card rio-auth-card">
     <a class="link-back" href="{% url 'login' %}">← Volver a iniciar sesión</a>
     <h1 class="rio-auth-title">Verificación de seguridad</h1>
-    <p class="rio-auth-subtitle">Ingresa tu código de la app autenticadora o un código de respaldo.</p>
+    <p class="rio-auth-subtitle">Ingresa el código de 6 dígitos que enviamos a tu correo.</p>
     {% if masked_email %}<p class="hint">Cuenta: {{ masked_email }}</p>{% endif %}
 
     <form method="post" class="rio-form" data-submit-lock data-submit-text="Verificando...">
       {% csrf_token %}
       <div class="rio-field">
-        <label class="rio-label" for="id_totp_code">Código de autenticador (6 dígitos)</label>
-        <input id="id_totp_code" name="totp_code" class="ui-input" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="123456">
+        <label class="rio-label" for="id_code">Código de verificación (6 dígitos)</label>
+        <input id="id_code" name="code" class="ui-input" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="123456" required>
       </div>
-
-      <div class="rio-field">
-        <label class="rio-label" for="id_backup_code">Código de respaldo (opcional)</label>
-        <input id="id_backup_code" name="backup_code" class="ui-input" type="text" placeholder="ABCDE-FGHIJ">
-      </div>
-
+      <input type="hidden" name="action" value="verify">
       <button type="submit" class="btn btn-primary">Verificar y entrar</button>
     </form>
-    <p class="hint">Códigos de respaldo restantes: {{ backup_codes_left }}</p>
+
+    <form method="post" class="rio-form rio-mt-12" data-submit-lock data-submit-text="Enviando...">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="resend">
+      <button type="submit" class="btn">
+        {% if resend_wait_seconds > 0 %}
+          Reenviar código ({{ resend_wait_seconds }}s)
+        {% else %}
+          Reenviar código
+        {% endif %}
+      </button>
+    </form>
   </div>
 </div>
 {% endblock %}

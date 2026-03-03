@@ -1,0 +1,11 @@
+{% extends "emails/base.txt" %}
+{% block content %}
+Codigo de seguridad
+
+Usa este codigo para completar tu inicio de sesion.
+
+Codigo: {{ code }}
+Expira en: {{ expires_minutes }} minuto{{ expires_minutes|pluralize }}
+
+Si no intentaste iniciar sesion, ignora este correo.
+{% endblock %}

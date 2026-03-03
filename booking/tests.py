@@ -1,15 +1,15 @@
 from django.contrib.auth import get_user_model
 from django.core import mail
+import re
 from django.test import TestCase
 from django.test.utils import override_settings
 from django.urls import reverse
 from datetime import date, time, timedelta
 from django.utils import timezone
-import time as pytime
 
 from .models import Checkout, Client, ClientDependent, ClientProfile, Reservation, TimeSlot, Trainer, TrainerAvailability, UserTwoFactorAuth
 from .services import get_platform_fee_percent
-from .views import _send_checkout_confirmation_email, _totp_code, _validate_trainer_coupon
+from .views import _send_checkout_confirmation_email, _validate_trainer_coupon
 
 
 User = get_user_model()
@@ -498,6 +498,7 @@ class DependentBookingFlowTests(TestCase):
 
 
 class TwoFactorAuthTests(TestCase):
+    @override_settings(TWO_FA_METHOD="email")
     def test_login_with_enabled_2fa_redirects_to_verification(self):
         user = User.objects.create_user(
             username="2fa-user@example.com",
@@ -507,8 +508,6 @@ class TwoFactorAuthTests(TestCase):
         UserTwoFactorAuth.objects.create(
             user=user,
             is_enabled=True,
-            totp_secret="JBSWY3DPEHPK3PXP",
-            backup_codes=[],
         )
 
         response = self.client.post(
@@ -519,19 +518,20 @@ class TwoFactorAuthTests(TestCase):
         self.assertRedirects(response, reverse("booking:two_factor_verify"))
         self.assertNotIn("_auth_user_id", self.client.session)
         self.assertEqual(self.client.session.get("two_fa_pending_user_id"), user.id)
+        self.assertGreaterEqual(len(mail.outbox), 1)
+        self.assertIn("codigo", mail.outbox[-1].body.lower())
 
-    def test_totp_verification_completes_login_and_redirects(self):
+    @override_settings(TWO_FA_METHOD="email")
+    def test_email_code_verification_completes_login_and_redirects(self):
         user = User.objects.create_user(
             username="2fa-client@example.com",
             email="2fa-client@example.com",
             password="pass12345",
         )
         ClientProfile.objects.create(user=user, full_name="2FA Client", active=True)
-        two_fa = UserTwoFactorAuth.objects.create(
+        UserTwoFactorAuth.objects.create(
             user=user,
             is_enabled=True,
-            totp_secret="JBSWY3DPEHPK3PXP",
-            backup_codes=[],
         )
 
         self.client.post(
@@ -542,10 +542,14 @@ class TwoFactorAuthTests(TestCase):
                 "next": reverse("booking:client_portal_dashboard"),
             },
         )
-        code = _totp_code(two_fa.totp_secret, for_counter=int(pytime.time() // 30))
+        self.assertGreaterEqual(len(mail.outbox), 1)
+        body = mail.outbox[-1].body
+        match = re.search(r"Codigo:\s*(\d{6})", body)
+        self.assertIsNotNone(match)
+        code = match.group(1)
         response = self.client.post(
             reverse("booking:two_factor_verify"),
-            {"totp_code": code},
+            {"code": code, "action": "verify"},
         )
 
         self.assertRedirects(response, reverse("booking:client_portal_dashboard"))

@@ -11,36 +11,22 @@
   <div class="card rio-auth-card rio-auth-card-lg">
     <a class="link-back" href="{% url 'booking:account_role_management' %}">← Volver a mi cuenta</a>
     <h1 class="rio-auth-title">Autenticación en dos pasos</h1>
-    <p class="rio-auth-subtitle">Escanea este secreto en tu app autenticadora y valida con un código de 6 dígitos.</p>
+    <p class="rio-auth-subtitle">Protege tu acceso con un código de verificación enviado a tu email.</p>
 
-    <div class="rio-field">
-      <label class="rio-label" for="id_manual_secret">Clave secreta (manual)</label>
-      <input id="id_manual_secret" class="ui-input" type="text" value="{{ manual_secret }}" readonly>
-    </div>
-
-    <div class="rio-field">
-      <label class="rio-label" for="id_otpauth_uri">URI OTP (avanzado)</label>
-      <textarea id="id_otpauth_uri" class="ui-input" rows="3" readonly>{{ otpauth_uri }}</textarea>
-    </div>
-
-    <form method="post" class="rio-form" data-submit-lock data-submit-text="Verificando...">
-      {% csrf_token %}
-      <div class="rio-field">
-        <label class="rio-label" for="id_totp_code">Código de verificación</label>
-        <input id="id_totp_code" name="totp_code" class="ui-input" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="123456" required>
-      </div>
-      <button type="submit" class="btn btn-primary">Confirmar y activar 2FA</button>
-    </form>
-
-    {% if backup_codes_plain %}
-      <div class="portal-divider"></div>
-      <h2 class="rio-section-title">Códigos de respaldo</h2>
-      <p class="hint rio-section-subtitle">Guárdalos en un lugar seguro. Solo se muestran una vez.</p>
-      <div class="card rio-block-card">
-        {% for code in backup_codes_plain %}
-          <div><code>{{ code }}</code></div>
-        {% endfor %}
-      </div>
+    {% if two_fa_method == "off" %}
+      <div class="alert alert-info">2FA está desactivado globalmente.</div>
+    {% elif two_fa.is_enabled %}
+      <div class="alert alert-success">2FA por email ya está activo para tu cuenta.</div>
+      <p class="hint rio-section-subtitle">En cada inicio de sesión recibirás un código temporal por correo.</p>
+    {% else %}
+      <form method="post" class="rio-form" data-submit-lock data-submit-text="Activando...">
+        {% csrf_token %}
+        <div class="rio-field">
+          <label class="rio-label" for="id_confirm_password">Contraseña actual</label>
+          <input id="id_confirm_password" name="confirm_password" class="ui-input" type="password" placeholder="Tu contraseña" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Activar 2FA por email</button>
+      </form>
     {% endif %}
   </div>
 </div>

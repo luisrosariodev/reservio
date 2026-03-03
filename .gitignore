@@ -36,3 +36,6 @@ staticfiles/
 .DS_Store
 .vscode/
 .idea/
+
+# Local DB backups
+db.sqlite3.backup

@@ -18,6 +18,19 @@ from urllib.parse import parse_qs, unquote, urlparse
 from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
 
+try:
+    import whitenoise  # noqa: F401
+    HAS_WHITENOISE = True
+except Exception:
+    HAS_WHITENOISE = False
+
+# In production we require WhiteNoise so static assets (CSS/JS) render correctly behind Gunicorn.
+# If you deploy without it, pages load but styling breaks.
+if os.getenv("DJANGO_DEBUG", "False").lower() != "true" and not HAS_WHITENOISE:
+    raise ImproperlyConfigured(
+        "WhiteNoise is required in production to serve /static/. Add 'whitenoise' to requirements.txt and redeploy."
+    )
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -64,6 +77,13 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+]
+
+if HAS_WHITENOISE:
+    # Must be immediately after SecurityMiddleware
+    MIDDLEWARE += ["whitenoise.middleware.WhiteNoiseMiddleware"]
+
+MIDDLEWARE += [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -100,6 +120,12 @@ def _database_config_from_env():
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
     }
+    # Local safety switch: allow forcing sqlite even if DATABASE_URL is present.
+    # Useful when developers keep a production-like DATABASE_URL in .env but want local data.
+    force_sqlite = os.getenv("LOCAL_FORCE_SQLITE", "False").strip().lower() == "true"
+    if force_sqlite:
+        return sqlite_default
+
     database_url = os.getenv("DATABASE_URL", "").strip()
     if not database_url:
         return sqlite_default
@@ -188,6 +214,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "/static/"
+# Railway/containers commonly run collectstatic during deploy; keep a predictable path.
 STATIC_ROOT = BASE_DIR / "static"
 
 # Static storage:
@@ -199,10 +226,18 @@ if DEBUG:
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     }
 else:
+    static_backend = (
+        "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        if HAS_WHITENOISE
+        else "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
+    )
     STORAGES = {
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"},
+        "staticfiles": {"BACKEND": static_backend},
     }
+    # Avoid hard 500s if a deploy comes up before collectstatic is executed.
+    # Static assets may load without hashed names temporarily, but app pages remain available.
+    WHITENOISE_MANIFEST_STRICT = False
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -279,3 +314,6 @@ AUTH_RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("AUTH_RATE_LIMIT_WINDOW_SECONDS",
 AUTH_RATE_LIMIT_MAX_ATTEMPTS = int(os.getenv("AUTH_RATE_LIMIT_MAX_ATTEMPTS", "8"))
 TWO_FA_RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("TWO_FA_RATE_LIMIT_WINDOW_SECONDS", "300"))  # 5 min
 TWO_FA_RATE_LIMIT_MAX_ATTEMPTS = int(os.getenv("TWO_FA_RATE_LIMIT_MAX_ATTEMPTS", "8"))
+TWO_FA_METHOD = os.getenv("TWO_FA_METHOD", "email").strip().lower()  # off | email
+TWO_FA_EMAIL_CODE_TTL_SECONDS = int(os.getenv("TWO_FA_EMAIL_CODE_TTL_SECONDS", "600"))
+TWO_FA_EMAIL_RESEND_COOLDOWN_SECONDS = int(os.getenv("TWO_FA_EMAIL_RESEND_COOLDOWN_SECONDS", "45"))

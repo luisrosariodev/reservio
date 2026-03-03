@@ -2,15 +2,9 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 import logging
 import csv
-import base64
-import binascii
-import hashlib
-import hmac
 import os
-import struct
 import time
 from email.mime.image import MIMEImage
-from urllib.parse import quote
 
 import stripe
 
@@ -88,6 +82,9 @@ ROLE_CLIENT = "client"
 ROLE_SESSION_KEY = "account_active_role"
 TWO_FA_PENDING_USER_KEY = "two_fa_pending_user_id"
 TWO_FA_PENDING_NEXT_KEY = "two_fa_pending_next"
+TWO_FA_CODE_HASH_KEY = "two_fa_email_code_hash"
+TWO_FA_CODE_EXPIRES_KEY = "two_fa_email_code_expires_at"
+TWO_FA_CODE_RESEND_AT_KEY = "two_fa_email_code_resend_at"
 
 
 def _client_ip(request):
@@ -233,10 +230,17 @@ def _post_login_redirect_url(request, user, next_url: str = ""):
             return f"{reverse('booking:trainer_verify_pending')}?email={user.email}"
         return redirect_url
 
-    if trainer not in (None, "__MULTIPLE__") and _email_verification_is_required() and not trainer.email_verified:
+    has_trainer, has_client = _resolve_account_roles(user)
+    # Email verification gate applies to trainer portal access, not to client-only navigation.
+    if (
+        trainer not in (None, "__MULTIPLE__")
+        and _email_verification_is_required()
+        and not trainer.email_verified
+        and has_trainer
+        and not has_client
+    ):
         return f"{reverse('booking:trainer_verify_pending')}?email={user.email}"
 
-    has_trainer, has_client = _resolve_account_roles(user)
     if has_trainer and has_client:
         return reverse("booking:account_mode_select")
     if has_trainer:
@@ -253,81 +257,47 @@ def _get_or_create_user_2fa(user):
     return obj
 
 
-def _generate_totp_secret() -> str:
-    raw = os.urandom(20)
-    return base64.b32encode(raw).decode("ascii").rstrip("=")
+def _two_fa_method() -> str:
+    method = (getattr(settings, "TWO_FA_METHOD", "email") or "email").strip().lower()
+    if method not in {"off", "email"}:
+        return "email"
+    return method
 
 
-def _normalize_totp_secret(secret: str) -> bytes:
-    value = (secret or "").strip().replace(" ", "").upper()
-    if not value:
-        return b""
-    padding = "=" * ((8 - len(value) % 8) % 8)
-    try:
-        return base64.b32decode(value + padding, casefold=True)
-    except (binascii.Error, ValueError):
-        return b""
+def _is_two_fa_globally_enabled() -> bool:
+    return _two_fa_method() != "off"
 
 
-def _totp_code(secret: str, *, for_counter: int, digits: int = 6) -> str:
-    key = _normalize_totp_secret(secret)
-    if not key:
-        return ""
-    msg = struct.pack(">Q", int(for_counter))
-    digest = hmac.new(key, msg, hashlib.sha1).digest()
-    offset = digest[-1] & 0x0F
-    code_int = struct.unpack(">I", digest[offset:offset + 4])[0] & 0x7FFFFFFF
-    return str(code_int % (10**digits)).zfill(digits)
+def _generate_two_fa_email_code() -> str:
+    return "".join(get_random_string(1, allowed_chars="0123456789") for _ in range(6))
 
 
-def _verify_totp(secret: str, code: str, *, window: int = 1, step: int = 30) -> bool:
-    normalized_code = "".join(ch for ch in (code or "") if ch.isdigit())
-    if len(normalized_code) != 6:
-        return False
-    counter = int(time.time() // step)
-    for drift in range(-window, window + 1):
-        expected = _totp_code(secret, for_counter=counter + drift)
-        if expected and hmac.compare_digest(expected, normalized_code):
-            return True
-    return False
-
-
-def _generate_backup_codes_plain(count: int = 8):
-    codes = []
-    for _ in range(count):
-        chunk = get_random_string(10, allowed_chars="23456789ABCDEFGHJKLMNPQRSTUVWXYZ")
-        codes.append(f"{chunk[:5]}-{chunk[5:]}")
-    return codes
-
-
-def _hash_backup_codes(codes):
-    return [make_password(c) for c in codes]
-
-
-def _consume_backup_code(two_fa: UserTwoFactorAuth, submitted_code: str) -> bool:
-    normalized = (submitted_code or "").strip().upper()
-    if not normalized:
-        return False
-    current_codes = list(two_fa.backup_codes or [])
-    for idx, hashed in enumerate(current_codes):
-        if check_password(normalized, hashed):
-            del current_codes[idx]
-            two_fa.backup_codes = current_codes
-            two_fa.last_verified_at = timezone.now()
-            two_fa.save(update_fields=["backup_codes", "last_verified_at", "updated_at"])
-            return True
-    return False
-
-
-def _build_totp_otpauth_uri(user, secret: str) -> str:
-    account_name = (getattr(user, "email", "") or f"user-{user.id}").strip() or f"user-{user.id}"
-    issuer = "Reserv.io"
-    label = f"{issuer}:{account_name}"
-    return (
-        "otpauth://totp/"
-        + quote(label)
-        + f"?secret={quote(secret)}&issuer={quote(issuer)}&algorithm=SHA1&digits=6&period=30"
+def _send_two_fa_email_code(user, code: str):
+    to_email = (user.email or "").strip()
+    if not to_email:
+        raise ValueError("User has no email for 2FA delivery")
+    _send_templated_email(
+        subject="Tu código de acceso de Reserv.io",
+        to=[to_email],
+        text_template="emails/two_factor_code.txt",
+        html_template="emails/two_factor_code.html",
+        context={
+            "code": code,
+            "user_email": (user.email or "").strip(),
+            "expires_minutes": max(1, int(getattr(settings, "TWO_FA_EMAIL_CODE_TTL_SECONDS", 600) // 60)),
+        },
     )
+
+
+def _issue_two_fa_code(request, user):
+    now_ts = int(time.time())
+    expires_in = int(getattr(settings, "TWO_FA_EMAIL_CODE_TTL_SECONDS", 600) or 600)
+    resend_cooldown = int(getattr(settings, "TWO_FA_EMAIL_RESEND_COOLDOWN_SECONDS", 45) or 45)
+    code = _generate_two_fa_email_code()
+    request.session[TWO_FA_CODE_HASH_KEY] = make_password(code)
+    request.session[TWO_FA_CODE_EXPIRES_KEY] = now_ts + expires_in
+    request.session[TWO_FA_CODE_RESEND_AT_KEY] = now_ts + resend_cooldown
+    _send_two_fa_email_code(user, code)
 
 
 def _portal_url(*, tab="availability", edit=False):
@@ -1022,7 +992,6 @@ def create_checkout_view(request, slug):
                 .select_for_update()
                 .filter(trainer=trainer, active=True, id__in=timeslot_ids)
                 .filter(date__gte=today)
-                .annotate(num_reservations=Count("reservations"))
                 .order_by("date", "time")
             )
             slots = list(slots_qs)
@@ -1039,9 +1008,21 @@ def create_checkout_view(request, slug):
                 return render(request, "booking/booking_form.html", ctx)
 
             # Validación de capacidad considerando asistentes por slot.
+            # Nota Postgres: no combinar select_for_update() con annotate()/GROUP BY.
+            # Por eso el lock de slots se hace arriba y el conteo en una consulta separada.
+            reservations_by_slot = {
+                row["timeslot_id"]: row["num_reservations"]
+                for row in (
+                    Reservation.objects
+                    .filter(timeslot_id__in=[s.id for s in slots])
+                    .values("timeslot_id")
+                    .annotate(num_reservations=Count("id"))
+                )
+            }
             for s in slots:
                 seats_requested = len(attendees_by_slot.get(str(s.id), ["self"]))
-                if (s.num_reservations + seats_requested) > s.capacity:
+                current_reserved = int(reservations_by_slot.get(s.id, 0))
+                if (current_reserved + seats_requested) > s.capacity:
                     ctx = _build_booking_context(
                         trainer=trainer,
                         week_param=week_param,
@@ -1569,7 +1550,7 @@ def account_role_management_view(request):
     has_client = ClientProfile.objects.filter(user=user, active=True).exists()
     two_fa = UserTwoFactorAuth.objects.filter(user=user).first()
     two_fa_enabled = bool(two_fa and two_fa.is_enabled)
-    backup_codes_count = len(two_fa.backup_codes or []) if two_fa_enabled else 0
+    two_fa_method = _two_fa_method()
 
     trainer_form = TrainerRoleActivationForm(prefix="trainer")
     client_form = ClientRoleActivationForm(prefix="client")
@@ -1632,7 +1613,7 @@ def account_role_management_view(request):
             "trainer_form": trainer_form,
             "client_form": client_form,
             "two_fa_enabled": two_fa_enabled,
-            "backup_codes_count": backup_codes_count,
+            "two_fa_method": two_fa_method,
         },
     )
 
@@ -1671,32 +1652,30 @@ def account_deleted_view(request):
 @login_required
 def account_two_factor_setup_view(request):
     user = request.user
+    if not _is_two_fa_globally_enabled():
+        messages.info(request, "2FA está desactivado en esta instancia.")
+        return redirect("booking:account_role_management")
+    if not (user.email or "").strip():
+        messages.error(request, "Tu cuenta no tiene email. Añádelo antes de activar 2FA.")
+        return redirect("booking:account_role_management")
+
     two_fa = _get_or_create_user_2fa(user)
-
-    if not two_fa.totp_secret:
-        two_fa.totp_secret = _generate_totp_secret()
-        two_fa.save(update_fields=["totp_secret", "updated_at"])
-
-    backup_codes_plain = request.session.pop("two_fa_new_backup_codes", [])
     if request.method == "POST":
-        code = (request.POST.get("totp_code") or "").strip()
-        if not _verify_totp(two_fa.totp_secret, code):
-            messages.error(request, "Código inválido. Verifica el código de tu app autenticadora.")
+        password = (request.POST.get("confirm_password") or "").strip()
+        if not password or not request.user.check_password(password):
+            messages.error(request, "Contraseña incorrecta. No se pudo activar 2FA.")
         else:
-            plain_codes = _generate_backup_codes_plain()
             two_fa.is_enabled = True
-            two_fa.backup_codes = _hash_backup_codes(plain_codes)
+            two_fa.totp_secret = ""
+            two_fa.backup_codes = []
             two_fa.last_verified_at = timezone.now()
-            two_fa.save(update_fields=["is_enabled", "backup_codes", "last_verified_at", "updated_at"])
-            request.session["two_fa_new_backup_codes"] = plain_codes
-            messages.success(request, "Autenticación en dos pasos activada.")
-            return redirect("booking:account_two_factor_setup")
+            two_fa.save(update_fields=["is_enabled", "totp_secret", "backup_codes", "last_verified_at", "updated_at"])
+            messages.success(request, "Autenticación en dos pasos activada. Recibirás códigos por email al iniciar sesión.")
+            return redirect("booking:account_role_management")
 
     context = {
         "two_fa": two_fa,
-        "manual_secret": two_fa.totp_secret,
-        "otpauth_uri": _build_totp_otpauth_uri(user, two_fa.totp_secret),
-        "backup_codes_plain": backup_codes_plain,
+        "two_fa_method": _two_fa_method(),
     }
     return render(request, "booking/account_two_factor_setup.html", context)
 
@@ -1715,8 +1694,9 @@ def account_two_factor_disable_view(request):
         return redirect("booking:account_role_management")
 
     two_fa.is_enabled = False
+    two_fa.totp_secret = ""
     two_fa.backup_codes = []
-    two_fa.save(update_fields=["is_enabled", "backup_codes", "updated_at"])
+    two_fa.save(update_fields=["is_enabled", "totp_secret", "backup_codes", "updated_at"])
     messages.success(request, "Autenticación en dos pasos desactivada.")
     return redirect("booking:account_role_management")
 
@@ -1724,22 +1704,8 @@ def account_two_factor_disable_view(request):
 @login_required
 @require_POST
 def account_two_factor_regenerate_codes_view(request):
-    two_fa = UserTwoFactorAuth.objects.filter(user=request.user, is_enabled=True).first()
-    if not two_fa:
-        messages.error(request, "Activa 2FA antes de regenerar códigos de respaldo.")
-        return redirect("booking:account_role_management")
-
-    password = (request.POST.get("confirm_password") or "").strip()
-    if not password or not request.user.check_password(password):
-        messages.error(request, "Contraseña incorrecta. No se regeneraron los códigos.")
-        return redirect("booking:account_role_management")
-
-    plain_codes = _generate_backup_codes_plain()
-    two_fa.backup_codes = _hash_backup_codes(plain_codes)
-    two_fa.save(update_fields=["backup_codes", "updated_at"])
-    request.session["two_fa_new_backup_codes"] = plain_codes
-    messages.success(request, "Se regeneraron los códigos de respaldo.")
-    return redirect("booking:account_two_factor_setup")
+    messages.info(request, "Con 2FA por email no se usan códigos de respaldo.")
+    return redirect("booking:account_role_management")
 
 
 def two_factor_verify_view(request):
@@ -1757,11 +1723,15 @@ def two_factor_verify_view(request):
         return redirect("login")
 
     two_fa = UserTwoFactorAuth.objects.filter(user=user, is_enabled=True).first()
-    if not two_fa:
+    if not two_fa or not _is_two_fa_globally_enabled():
+        next_url = request.session.pop(TWO_FA_PENDING_NEXT_KEY, "")
         request.session.pop(TWO_FA_PENDING_USER_KEY, None)
-        request.session.pop(TWO_FA_PENDING_NEXT_KEY, None)
-        messages.error(request, "Este usuario no tiene 2FA activo.")
-        return redirect("login")
+        request.session.pop(TWO_FA_CODE_HASH_KEY, None)
+        request.session.pop(TWO_FA_CODE_EXPIRES_KEY, None)
+        request.session.pop(TWO_FA_CODE_RESEND_AT_KEY, None)
+        backend_path = (getattr(settings, "AUTHENTICATION_BACKENDS", []) or ["django.contrib.auth.backends.ModelBackend"])[0]
+        auth_login(request, user, backend=backend_path)
+        return redirect(_post_login_redirect_url(request, user, next_url=next_url))
 
     max_attempts = int(getattr(settings, "TWO_FA_RATE_LIMIT_MAX_ATTEMPTS", 8) or 8)
     window_seconds = int(getattr(settings, "TWO_FA_RATE_LIMIT_WINDOW_SECONDS", 300) or 300)
@@ -1770,28 +1740,44 @@ def two_factor_verify_view(request):
         messages.error(request, "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.")
         return redirect("login")
 
+    code_hash = request.session.get(TWO_FA_CODE_HASH_KEY, "")
+    expires_at = int(request.session.get(TWO_FA_CODE_EXPIRES_KEY, 0) or 0)
+    resend_at = int(request.session.get(TWO_FA_CODE_RESEND_AT_KEY, 0) or 0)
+    now_ts = int(time.time())
+
     if request.method == "POST":
-        totp_code = (request.POST.get("totp_code") or "").strip()
-        backup_code = (request.POST.get("backup_code") or "").strip()
-        verified = False
+        action = (request.POST.get("action") or "verify").strip().lower()
+        if action == "resend":
+            if now_ts < resend_at:
+                wait_seconds = max(1, resend_at - now_ts)
+                messages.info(request, f"Espera {wait_seconds}s para reenviar otro código.")
+            else:
+                try:
+                    _issue_two_fa_code(request, user)
+                    messages.success(request, "Te enviamos un nuevo código por email.")
+                except Exception:
+                    logger.exception("No se pudo enviar código 2FA por email para user_id=%s", user.pk)
+                    messages.error(request, "No pudimos enviar el código. Inténtalo nuevamente.")
+            return redirect("booking:two_factor_verify")
 
-        if totp_code:
-            verified = _verify_totp(two_fa.totp_secret, totp_code)
-            if verified:
-                two_fa.last_verified_at = timezone.now()
-                two_fa.save(update_fields=["last_verified_at", "updated_at"])
-        elif backup_code:
-            verified = _consume_backup_code(two_fa, backup_code)
-
-        if not verified:
+        submitted_code = "".join(ch for ch in (request.POST.get("code") or "") if ch.isdigit())
+        if len(submitted_code) != 6 or not code_hash or now_ts > expires_at or not check_password(submitted_code, code_hash):
             _rate_limiter_hit(limiter_keys, window_seconds=window_seconds)
-            messages.error(request, "Código inválido. Intenta nuevamente.")
+            if now_ts > expires_at:
+                messages.error(request, "El código expiró. Solicita uno nuevo.")
+            else:
+                messages.error(request, "Código inválido. Intenta nuevamente.")
         else:
             _rate_limiter_clear(limiter_keys)
+            two_fa.last_verified_at = timezone.now()
+            two_fa.save(update_fields=["last_verified_at", "updated_at"])
             backend_path = (getattr(settings, "AUTHENTICATION_BACKENDS", []) or ["django.contrib.auth.backends.ModelBackend"])[0]
             auth_login(request, user, backend=backend_path)
             next_url = request.session.pop(TWO_FA_PENDING_NEXT_KEY, "")
             request.session.pop(TWO_FA_PENDING_USER_KEY, None)
+            request.session.pop(TWO_FA_CODE_HASH_KEY, None)
+            request.session.pop(TWO_FA_CODE_EXPIRES_KEY, None)
+            request.session.pop(TWO_FA_CODE_RESEND_AT_KEY, None)
             messages.success(request, "Verificación completada.")
             return redirect(_post_login_redirect_url(request, user, next_url=next_url))
 
@@ -1800,7 +1786,7 @@ def two_factor_verify_view(request):
         "registration/two_factor_verify.html",
         {
             "masked_email": (user.email or "").strip(),
-            "backup_codes_left": len(two_fa.backup_codes or []),
+            "resend_wait_seconds": max(0, resend_at - now_ts),
         },
     )
 
@@ -3028,6 +3014,16 @@ class TrainerAwareLoginView(LoginView):
 
         context["back_url"] = back_url
         context["back_label"] = back_label
+        submitted_login = (self.request.POST.get("username") or "").strip().lower()
+        if submitted_login and context.get("form") and context["form"].errors:
+            user_exists = get_user_model().objects.filter(
+                Q(username__iexact=submitted_login) | Q(email__iexact=submitted_login)
+            ).exists()
+            context["login_error_message"] = (
+                "No encontramos una cuenta con ese correo/usuario."
+                if not user_exists
+                else "Contraseña incorrecta. Inténtalo nuevamente."
+            )
         return context
 
     def post(self, request, *args, **kwargs):
@@ -3044,10 +3040,16 @@ class TrainerAwareLoginView(LoginView):
         username = (self.request.POST.get("username") or "").strip().lower()
         _rate_limiter_clear(_rate_limiter_keys("login", request=self.request, identifier=username))
         two_fa = UserTwoFactorAuth.objects.filter(user=user, is_enabled=True).first()
-        if two_fa:
+        if two_fa and _is_two_fa_globally_enabled():
             self.request.session[TWO_FA_PENDING_USER_KEY] = user.pk
             self.request.session[TWO_FA_PENDING_NEXT_KEY] = self.get_redirect_url() or ""
-            messages.info(self.request, "Ingresa tu código de autenticación para completar el acceso.")
+            try:
+                _issue_two_fa_code(self.request, user)
+            except Exception:
+                logger.exception("No se pudo emitir código 2FA por email para user_id=%s", user.pk)
+                messages.error(self.request, "No pudimos enviar tu código de seguridad. Inténtalo nuevamente.")
+                return redirect("login")
+            messages.info(self.request, "Te enviamos un código de seguridad por email para completar el acceso.")
             return redirect("booking:two_factor_verify")
         return super().form_valid(form)
 

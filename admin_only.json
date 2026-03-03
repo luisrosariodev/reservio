@@ -1,0 +1,20 @@
+[
+{
+  "model": "auth.user",
+  "pk": 1,
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$tO1y2UdWmSqO3BH2NaFrNp$UQytYIJ1NZgs9uVZWJe3jCs3QvyDN7PTMe8CZc5RD8U=",
+    "last_login": "2026-03-01T15:33:52.334Z",
+    "is_superuser": true,
+    "username": "rosariodev",
+    "first_name": "",
+    "last_name": "",
+    "email": "luisrosario@rosariodev.com",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2025-12-02T00:28:24.004Z",
+    "groups": [],
+    "user_permissions": []
+  }
+}
+]

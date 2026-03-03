@@ -1,9 +1,8 @@
 {% extends "base.html" %}
-
-{% block title %}Reserv.io – Entrenadores{% endblock %}
+{% block title %}Reserv.io - Entrenadores{% endblock %}
 
 {% block body %}
-<div style="max-width: 1100px; margin: 0 auto; padding: 32px;">
+<div style="max-width:1100px; margin:0 auto; padding:32px;">
   <style>
     .trainer-card{
       transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
@@ -16,51 +15,32 @@
     }
   </style>
 
-  <h1 style="margin:0;">Entrenadores disponibles</h1>
-  <p class="hint" style="margin-top:8px;">
-    Elige un entrenador y reserva tus sesiones.
-  </p>
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
+    <div>
+      <h1 style="margin:0;">Entrenadores disponibles</h1>
+      <p class="hint" style="margin-top:8px;">Elige un entrenador y reserva tus sesiones.</p>
+    </div>
+    <a class="btn" href="{% url 'booking:home_io' %}">Volver</a>
+  </div>
 
-  <div style="
-    display:grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap:16px;
-    margin-top:24px;
-  ">
+  <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px; margin-top:24px;">
     {% for trainer in trainers %}
-      <a href="/t/{{ trainer.slug }}/book/" style="text-decoration:none; color:inherit;">
-        <div class="trainer-card" style="
-          border:1px solid var(--border);
-          border-radius:20px;
-          padding:20px;
-          background: var(--card);
-          display:flex;
-          flex-direction:column;
-          gap:12px;
-        ">
+      <a href="{% url 'booking:booking' slug=trainer.slug %}" style="text-decoration:none; color:inherit;">
+        <div class="trainer-card" style="border:1px solid var(--border); border-radius:20px; padding:20px; background:var(--card); display:flex; flex-direction:column; gap:12px;">
           <div>
-            <h3 style="margin:0; font-size:16px; font-weight:700;">
-              {{ trainer.business_name }}
-            </h3>
+            <h3 style="margin:0; font-size:16px; font-weight:700;">{{ trainer.business_name }}</h3>
             {% if trainer.gym_name %}
-              <div class="hint" style="font-size:13px; margin-top:2px;">
-                {{ trainer.gym_name }}
-              </div>
+              <div class="hint" style="font-size:13px; margin-top:2px;">{{ trainer.gym_name }}</div>
             {% endif %}
             {% if trainer.price_per_session %}
               <div class="pill" style="width:fit-content;">${{ trainer.price_per_session }} / sesión</div>
             {% endif %}
           </div>
 
-          <div class="hint">
-            {{ trainer.description|default:"Entrenador personal" }}
-          </div>
+          <div class="hint">{{ trainer.description|default:"Entrenador personal" }}</div>
 
           <div style="margin-top:auto; padding-top:10px;">
-            <div
-              class="btn btn-primary"
-              style="align-self:flex-start; padding-left:20px; padding-right:20px;"
-            >
+            <div class="btn btn-primary" style="align-self:flex-start; padding-left:20px; padding-right:20px;">
               Ver disponibilidad
             </div>
           </div>
@@ -70,6 +50,5 @@
       <p class="hint">No hay entrenadores disponibles.</p>
     {% endfor %}
   </div>
-
 </div>
 {% endblock %}
