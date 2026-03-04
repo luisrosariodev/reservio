@@ -178,7 +178,13 @@ main .shell{
 
 /* List by day (more "dashboard" like) */
 .avail-days{display:grid;gap:14px}
-.avail-day{border:1px solid var(--border);border-radius:16px;padding:14px}
+.avail-day{
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:14px;
+  max-width:100%;
+  overflow:hidden;
+}
 
 .avail-day-head{display:grid;grid-template-columns:160px 1fr auto;gap:12px;align-items:center}
 .avail-day-title{display:flex;align-items:center;gap:10px}
@@ -233,12 +239,15 @@ main .shell{
 .avail-times,
 .avail-row > *{
   min-width:0;
+  max-width:100%;
 }
 .avail-times input[type="time"],
 .avail-times select{
   width:100%;
   max-width:100%;
   min-width:0;
+  box-sizing:border-box;
+  display:block;
 }
 
 .avail-times{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -321,6 +330,12 @@ main .shell{
   .portal-onboarding-compact-head .portal-inline-actions .btn{flex:1}
 }
 @media (max-width: 820px){
+  .portal{
+    padding:16px;
+  }
+  .portal-section{
+    padding:12px;
+  }
   .avail-day{
     padding:12px;
   }
@@ -348,6 +363,9 @@ main .shell{
   .avail-times select{width:100%}
   .avail-times input[type="time"]{
     font-size:16px; /* Prevent iOS zoom + clipping */
+    inline-size:100% !important;
+    max-inline-size:100% !important;
+    min-inline-size:0 !important;
   }
   .avail-right{justify-content:flex-start}
   .avail-right .btn{width:100%}
