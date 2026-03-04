@@ -309,9 +309,33 @@ main .shell{
   .portal-onboarding-compact-head .portal-inline-actions .btn{flex:1}
 }
 @media (max-width: 820px){
+  .avail-day{
+    padding:12px;
+  }
+  .avail-day-head{
+    grid-template-columns:1fr;
+    align-items:flex-start;
+    gap:8px;
+  }
+  .day-switch{
+    width:100%;
+    align-items:flex-start;
+  }
+  .avail-day-actions{
+    width:100%;
+    justify-content:flex-start;
+  }
+  .avail-day-actions .btn{
+    width:100%;
+    justify-content:center;
+  }
   .avail-row{grid-template-columns:1fr;align-items:stretch}
   .avail-times{grid-template-columns:1fr}
+  .avail-times > div{width:100%}
+  .avail-times input,
+  .avail-times select{width:100%}
   .avail-right{justify-content:flex-start}
+  .avail-right .btn{width:100%}
   .payments-grid{grid-template-columns:1fr}
   .payments-actions{align-items:flex-start}
   .payments-side-note{text-align:left}

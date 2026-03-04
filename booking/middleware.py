@@ -10,6 +10,7 @@ class TrainerPortalLogoutMiddleware:
     # Rutas consideradas "dentro del portal" (no hacen logout)
     PORTAL_PREFIXES = (
         "/trainer/",           # portal entrenador
+        "/client/",            # verificación cliente
         "/clients/",           # portal cliente
         "/portal/",            # resolver portal home
         "/account/",           # gestión de roles/cuenta

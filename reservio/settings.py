@@ -317,6 +317,8 @@ RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
 RESEND_API_URL = os.getenv("RESEND_API_URL", "https://api.resend.com/emails").strip()
 TRAINER_VERIFY_EMAIL_MAX_AGE_SECONDS = int(os.getenv("TRAINER_VERIFY_EMAIL_MAX_AGE_SECONDS", "172800"))
 TRAINER_REQUIRE_EMAIL_VERIFICATION = os.getenv("TRAINER_REQUIRE_EMAIL_VERIFICATION", "True").strip().lower() == "true"
+CLIENT_VERIFY_EMAIL_MAX_AGE_SECONDS = int(os.getenv("CLIENT_VERIFY_EMAIL_MAX_AGE_SECONDS", "172800"))
+CLIENT_REQUIRE_EMAIL_VERIFICATION = os.getenv("CLIENT_REQUIRE_EMAIL_VERIFICATION", "True").strip().lower() == "true"
 TRAINER_SEND_TRANSACTIONAL_EMAILS = os.getenv("TRAINER_SEND_TRANSACTIONAL_EMAILS", "True").strip().lower() == "true"
 APP_BASE_URL = os.getenv("APP_BASE_URL", "").strip().rstrip("/")
 EMAIL_BRAND_NAME = os.getenv("EMAIL_BRAND_NAME", "Reserv.io").strip()

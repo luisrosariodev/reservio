@@ -49,6 +49,9 @@ urlpatterns = [
     path("trainer/verify/pending/", views.trainer_verify_pending_view, name="trainer_verify_pending"),
     path("trainer/verify/email/", views.trainer_verify_email_view, name="trainer_verify_email"),
     path("trainer/verify/resend/", views.trainer_verify_resend_view, name="trainer_verify_resend"),
+    path("client/verify/pending/", views.client_verify_pending_view, name="client_verify_pending"),
+    path("client/verify/email/", views.client_verify_email_view, name="client_verify_email"),
+    path("client/verify/resend/", views.client_verify_resend_view, name="client_verify_resend"),
     path("trainer/dashboard/", views.trainer_dashboard_view, name="trainer_dashboard"),
     path("trainer/clients/export/", views.trainer_clients_export_view, name="trainer_clients_export"),
     path(

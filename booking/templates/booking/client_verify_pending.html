@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Verifica tu correo – Reservio{% endblock %}
+
+{% block head %}
+  <link rel="stylesheet" href="{% static 'css/pages/auth.css' %}">
+{% endblock %}
+
+{% block main %}
+<div class="card rio-auth-card">
+
+  <h1 class="rio-auth-title">Confirma tu correo</h1>
+  <p class="rio-auth-subtitle">
+    Te enviamos un enlace de verificación para activar tu portal de cliente.
+    {% if email %}<br>Correo: <strong>{{ email }}</strong>{% endif %}
+  </p>
+
+  <form method="post" action="{% url 'booking:client_verify_resend' %}" class="rio-form" data-submit-lock data-submit-text="Reenviando...">
+    {% csrf_token %}
+    <label for="verify-email">¿No llegó el email? Reenviar enlace</label>
+    <input id="verify-email" type="email" name="email" value="{{ email }}" required placeholder="tu@email.com">
+    <div class="rio-actions">
+      <button class="btn btn-primary" type="submit">Reenviar verificación</button>
+      <a class="btn btn-secondary" href="/accounts/login/">Ir a iniciar sesión</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

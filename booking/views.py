@@ -79,6 +79,7 @@ from django.contrib.auth.views import PasswordResetView, PasswordResetDoneView, 
 
 PORTAL_TABS = {"agenda", "availability", "profile", "payments", "clients"}
 EMAIL_VERIFY_SALT = "trainer-email-verify-v1"
+CLIENT_EMAIL_VERIFY_SALT = "client-email-verify-v1"
 logger = logging.getLogger(__name__)
 ROLE_TRAINER = "trainer"
 ROLE_CLIENT = "client"
@@ -200,6 +201,12 @@ def _resolve_account_roles(user):
     return has_trainer, has_client
 
 
+def _get_client_profile_for_user(user):
+    if not user or not getattr(user, "is_authenticated", False):
+        return None
+    return ClientProfile.objects.filter(user=user, active=True).first()
+
+
 def healthz_view(request):
     return JsonResponse({"ok": True, "service": "reservio"}, status=200)
 
@@ -219,6 +226,7 @@ def _set_active_role_session(request, role):
 
 def _post_login_redirect_url(request, user, next_url: str = ""):
     trainer = _get_trainer_for_user(user)
+    client_profile = _get_client_profile_for_user(user)
     redirect_url = (next_url or "").strip()
     if redirect_url:
         trainer_portal_path = reverse("booking:trainer_portal")
@@ -229,8 +237,13 @@ def _post_login_redirect_url(request, user, next_url: str = ""):
             _set_active_role_session(request, ROLE_TRAINER)
         if trainer not in (None, "__MULTIPLE__") and _email_verification_is_required() and not trainer.email_verified:
             if redirect_url.startswith(client_dashboard_path):
+                if client_profile and _client_email_verification_is_required() and not client_profile.email_verified:
+                    return f"{reverse('booking:client_verify_pending')}?email={user.email}"
                 return redirect_url
             return f"{reverse('booking:trainer_verify_pending')}?email={user.email}"
+        if client_profile and _client_email_verification_is_required() and not client_profile.email_verified:
+            if redirect_url.startswith(client_dashboard_path):
+                return f"{reverse('booking:client_verify_pending')}?email={user.email}"
         return redirect_url
 
     has_trainer, has_client = _resolve_account_roles(user)
@@ -250,6 +263,8 @@ def _post_login_redirect_url(request, user, next_url: str = ""):
         _set_active_role_session(request, ROLE_TRAINER)
         return reverse("booking:trainer_portal")
     if has_client:
+        if client_profile and _client_email_verification_is_required() and not client_profile.email_verified:
+            return f"{reverse('booking:client_verify_pending')}?email={user.email}"
         _set_active_role_session(request, ROLE_CLIENT)
         return reverse("booking:client_portal_dashboard")
     return reverse("booking:account_role_management")
@@ -327,6 +342,18 @@ def _email_verification_is_required() -> bool:
     return require_verification
 
 
+def _client_email_verification_is_required() -> bool:
+    require_verification = bool(getattr(settings, "CLIENT_REQUIRE_EMAIL_VERIFICATION", True))
+    send_emails = bool(getattr(settings, "TRAINER_SEND_TRANSACTIONAL_EMAILS", True))
+    if require_verification and not send_emails:
+        logger.warning(
+            "CLIENT_REQUIRE_EMAIL_VERIFICATION=True pero TRAINER_SEND_TRANSACTIONAL_EMAILS=False; "
+            "se desactiva temporalmente el gate de verificación para evitar bloqueo de acceso."
+        )
+        return False
+    return require_verification
+
+
 def _build_trainer_verify_token(user):
     payload = {
         "uid": user.pk,
@@ -338,6 +365,20 @@ def _build_trainer_verify_token(user):
 def _build_trainer_verify_link(request, user):
     token = _build_trainer_verify_token(user)
     verify_url = reverse("booking:trainer_verify_email")
+    return request.build_absolute_uri(f"{verify_url}?token={token}")
+
+
+def _build_client_verify_token(user):
+    payload = {
+        "uid": user.pk,
+        "email": (user.email or "").strip().lower(),
+    }
+    return signing.dumps(payload, salt=CLIENT_EMAIL_VERIFY_SALT)
+
+
+def _build_client_verify_link(request, user):
+    token = _build_client_verify_token(user)
+    verify_url = reverse("booking:client_verify_email")
     return request.build_absolute_uri(f"{verify_url}?token={token}")
 
 
@@ -488,6 +529,22 @@ def _send_trainer_verification_email(request, user, trainer):
     )
 
 
+def _send_client_verification_email(request, user, profile):
+    if not getattr(settings, "TRAINER_SEND_TRANSACTIONAL_EMAILS", True):
+        return
+    verify_link = _build_client_verify_link(request, user)
+    _send_templated_email(
+        subject="Confirma tu correo en Reserv.io",
+        to=[user.email],
+        text_template="emails/client_verification.txt",
+        html_template="emails/client_verification.html",
+        context={
+            "client_name": (profile.full_name or user.email or "cliente"),
+            "verify_link": verify_link,
+        },
+    )
+
+
 def _send_trainer_welcome_email(user, trainer):
     if not getattr(settings, "TRAINER_SEND_TRANSACTIONAL_EMAILS", True):
         return
@@ -501,6 +558,24 @@ def _send_trainer_welcome_email(user, trainer):
         html_template="emails/trainer_welcome.html",
         context={
             "trainer_name": trainer.business_name,
+            "portal_url": portal_url,
+        },
+    )
+
+
+def _send_client_welcome_email(user, profile):
+    if not getattr(settings, "TRAINER_SEND_TRANSACTIONAL_EMAILS", True):
+        return
+    app_base_url = (getattr(settings, "APP_BASE_URL", "") or "").strip().rstrip("/")
+    portal_path = reverse("booking:client_portal_dashboard")
+    portal_url = f"{app_base_url}{portal_path}" if app_base_url else portal_path
+    _send_templated_email(
+        subject="Tu cuenta de cliente ya está activa",
+        to=[user.email],
+        text_template="emails/client_welcome.txt",
+        html_template="emails/client_welcome.html",
+        context={
+            "client_name": (profile.full_name or user.email or "cliente"),
             "portal_url": portal_url,
         },
     )
@@ -1523,11 +1598,15 @@ def trainer_access_view(request):
     context = {}
     if request.user.is_authenticated:
         has_trainer, has_client = _resolve_account_roles(request.user)
+        trainer = _get_trainer_for_user(request.user)
         context.update(
             {
                 "is_logged_in": True,
                 "has_trainer": has_trainer,
                 "has_client": has_client,
+                "has_trainer_verified": bool(
+                    trainer not in (None, "__MULTIPLE__") and getattr(trainer, "email_verified", False)
+                ),
             }
         )
     return render(request, "booking/trainer_access.html", context)
@@ -1542,11 +1621,13 @@ def client_access_view(request):
     context = {}
     if request.user.is_authenticated:
         has_trainer, has_client = _resolve_account_roles(request.user)
+        profile = _get_client_profile_for_user(request.user)
         context.update(
             {
                 "is_logged_in": True,
                 "has_trainer": has_trainer,
                 "has_client": has_client,
+                "has_client_verified": bool(profile and profile.email_verified),
             }
         )
     return render(request, "booking/client_access.html", context)
@@ -1568,6 +1649,14 @@ def account_portal_home_view(request):
         forced_role = (request.GET.get("role") or "").strip().lower()
         if forced_role in {ROLE_TRAINER, ROLE_CLIENT}:
             _set_active_role_session(request, forced_role)
+            if forced_role == ROLE_TRAINER:
+                trainer = _get_trainer_for_user(request.user)
+                if trainer not in (None, "__MULTIPLE__") and _email_verification_is_required() and not trainer.email_verified:
+                    return redirect(f"{reverse('booking:trainer_verify_pending')}?email={request.user.email}")
+            if forced_role == ROLE_CLIENT:
+                client_profile = _get_client_profile_for_user(request.user)
+                if client_profile and _client_email_verification_is_required() and not client_profile.email_verified:
+                    return redirect(f"{reverse('booking:client_verify_pending')}?email={request.user.email}")
             return _redirect_for_role(forced_role)
         return redirect("booking:account_mode_select")
     if has_trainer:
@@ -1594,6 +1683,14 @@ def account_mode_select_view(request):
             messages.error(request, "Selecciona un modo válido.")
             return redirect("booking:account_mode_select")
         _set_active_role_session(request, selected_role)
+        if selected_role == ROLE_TRAINER:
+            trainer = _get_trainer_for_user(request.user)
+            if trainer not in (None, "__MULTIPLE__") and _email_verification_is_required() and not trainer.email_verified:
+                return redirect(f"{reverse('booking:trainer_verify_pending')}?email={request.user.email}")
+        if selected_role == ROLE_CLIENT:
+            client_profile = _get_client_profile_for_user(request.user)
+            if client_profile and _client_email_verification_is_required() and not client_profile.email_verified:
+                return redirect(f"{reverse('booking:client_verify_pending')}?email={request.user.email}")
         return _redirect_for_role(selected_role)
 
     return render(request, "booking/account_mode_select.html")
@@ -1652,12 +1749,29 @@ def account_role_management_view(request):
                 messages.info(request, "Tu perfil de cliente ya está activo.")
                 return redirect("booking:client_portal_dashboard")
             if client_form.is_valid():
-                ClientProfile.objects.create(
+                profile = ClientProfile.objects.create(
                     user=user,
                     full_name=(client_form.cleaned_data.get("full_name") or "").strip(),
                     phone=(client_form.cleaned_data.get("phone") or "").strip(),
+                    email_verified=False,
                     active=True,
                 )
+                if _client_email_verification_is_required():
+                    try:
+                        if user.email:
+                            _send_client_verification_email(request, user, profile)
+                    except Exception:
+                        logger.exception("No se pudo enviar verificacion de cliente user_id=%s", user.pk)
+                        messages.warning(
+                            request,
+                            "Perfil de cliente activado, pero no pudimos enviar el correo de verificación. Puedes reenviarlo.",
+                        )
+                    messages.success(request, "Perfil de cliente activado. Verifica tu correo para continuar.")
+                    return redirect(f"{reverse('booking:client_verify_pending')}?email={user.email}")
+
+                profile.email_verified = True
+                profile.email_verified_at = timezone.now()
+                profile.save(update_fields=["email_verified", "email_verified_at"])
                 messages.success(request, "Perfil de cliente activado.")
                 return redirect("booking:client_portal_dashboard")
             messages.error(request, "Corrige los errores para activar el perfil de cliente.")
@@ -2375,7 +2489,27 @@ def client_register_view(request):
     if request.method == "POST":
         form = ClientRegisterForm(request.POST)
         if form.is_valid():
-            form.save()
+            user = form.save()
+            profile = ClientProfile.objects.filter(user=user, active=True).first()
+            require_email_verification = _client_email_verification_is_required()
+
+            if require_email_verification:
+                try:
+                    if user.email and profile:
+                        _send_client_verification_email(request, user, profile)
+                except Exception:
+                    logger.exception("No se pudo enviar email de verificacion cliente user_id=%s", user.pk)
+                    messages.warning(
+                        request,
+                        "Tu cuenta fue creada, pero no pudimos enviar el correo de verificación. Puedes reenviarlo desde la pantalla de acceso.",
+                    )
+                messages.success(request, "Cuenta de cliente creada. Te enviamos un correo para confirmar tu cuenta.")
+                return redirect(f"{reverse('booking:client_verify_pending')}?email={user.email}")
+
+            if profile and not profile.email_verified:
+                profile.email_verified = True
+                profile.email_verified_at = timezone.now()
+                profile.save(update_fields=["email_verified", "email_verified_at"])
             messages.success(request, "Cuenta de cliente creada. Inicia sesión para ver tu dashboard.")
             login_url = reverse("login")
             next_url = reverse("booking:client_portal_dashboard")
@@ -2397,6 +2531,9 @@ def client_dashboard_view(request):
     if not profile:
         messages.info(request, "Primero activa tu perfil de cliente en tu cuenta.")
         return redirect("booking:account_role_management")
+    if _client_email_verification_is_required() and not profile.email_verified:
+        messages.warning(request, "Debes verificar tu correo para entrar al portal de cliente.")
+        return redirect(f"{reverse('booking:client_verify_pending')}?email={request.user.email}")
     request.session[ROLE_SESSION_KEY] = ROLE_CLIENT
 
     if request.method == "POST":
@@ -2806,6 +2943,98 @@ def trainer_verify_resend_view(request):
         )
 
     return redirect(f"{reverse('booking:trainer_verify_pending')}?email={email}")
+
+
+def client_verify_pending_view(request):
+    if not _client_email_verification_is_required():
+        return redirect(reverse("login") + f"?next={reverse('booking:client_portal_dashboard')}")
+    email = (request.GET.get("email") or "").strip()
+    return render(request, "booking/client_verify_pending.html", {"email": email})
+
+
+def client_verify_email_view(request):
+    if not _client_email_verification_is_required():
+        return redirect(reverse("login") + f"?next={reverse('booking:client_portal_dashboard')}")
+    token = (request.GET.get("token") or "").strip()
+    if not token:
+        messages.error(request, "El enlace de verificación no es válido.")
+        return redirect("booking:client_verify_pending")
+
+    max_age = int(getattr(settings, "CLIENT_VERIFY_EMAIL_MAX_AGE_SECONDS", 60 * 60 * 24 * 2))
+    try:
+        payload = signing.loads(token, salt=CLIENT_EMAIL_VERIFY_SALT, max_age=max_age)
+    except signing.SignatureExpired:
+        messages.error(request, "El enlace expiró. Solicita uno nuevo.")
+        return redirect("booking:client_verify_pending")
+    except signing.BadSignature:
+        messages.error(request, "El enlace de verificación no es válido.")
+        return redirect("booking:client_verify_pending")
+
+    user_id = payload.get("uid")
+    token_email = (payload.get("email") or "").strip().lower()
+    if not user_id or not token_email:
+        messages.error(request, "El enlace de verificación no es válido.")
+        return redirect("booking:client_verify_pending")
+
+    profile = ClientProfile.objects.select_related("user").filter(user_id=user_id, active=True).first()
+    if not profile:
+        messages.error(request, "No encontramos una cuenta de cliente asociada a este enlace.")
+        return redirect("booking:client_portal_register")
+
+    user = profile.user
+    current_email = (user.email or "").strip().lower()
+    if current_email != token_email:
+        messages.error(request, "Este enlace no coincide con tu correo actual.")
+        return redirect("booking:client_verify_pending")
+
+    if profile.email_verified:
+        messages.info(request, "Tu correo ya estaba confirmado. Puedes iniciar sesión.")
+    else:
+        profile.email_verified = True
+        profile.email_verified_at = timezone.now()
+        profile.save(update_fields=["email_verified", "email_verified_at"])
+        try:
+            _send_client_welcome_email(user, profile)
+        except Exception:
+            logger.exception("No se pudo enviar email de bienvenida cliente user_id=%s", user.pk)
+        messages.success(request, "Correo confirmado. Tu cuenta de cliente ya está activa.")
+
+    login_url = reverse("login")
+    next_url = reverse("booking:client_portal_dashboard")
+    return redirect(f"{login_url}?next={next_url}")
+
+
+@require_POST
+def client_verify_resend_view(request):
+    if not _client_email_verification_is_required():
+        return redirect(reverse("login") + f"?next={reverse('booking:client_portal_dashboard')}")
+    email = (request.POST.get("email") or "").strip().lower()
+    if not email:
+        messages.error(request, "Comparte tu correo para reenviar la verificación.")
+        return redirect("booking:client_verify_pending")
+
+    profile = ClientProfile.objects.select_related("user").filter(user__email__iexact=email, active=True).first()
+    if not profile:
+        messages.info(request, "Si el correo existe, te enviaremos un nuevo enlace.")
+        return redirect(f"{reverse('booking:client_verify_pending')}?email={email}")
+
+    if profile.email_verified:
+        messages.info(request, "Ese correo ya está confirmado. Puedes iniciar sesión.")
+        login_url = reverse("login")
+        next_url = reverse("booking:client_portal_dashboard")
+        return redirect(f"{login_url}?next={next_url}")
+
+    try:
+        _send_client_verification_email(request, profile.user, profile)
+        messages.success(request, "Te enviamos un nuevo enlace de verificación.")
+    except Exception:
+        logger.exception("No se pudo reenviar email de verificacion cliente profile_id=%s", profile.pk)
+        messages.error(
+            request,
+            "No pudimos enviar el correo ahora. Inténtalo de nuevo en unos minutos.",
+        )
+
+    return redirect(f"{reverse('booking:client_verify_pending')}?email={email}")
 
 
 @login_required

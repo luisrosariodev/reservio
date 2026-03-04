@@ -12,13 +12,20 @@
     <h1 class="rio-auth-title">¿Cómo deseas entrar?</h1>
     <p class="rio-auth-subtitle">Tu cuenta tiene ambos perfiles. Elige modo de trabajo.</p>
 
-    <form method="post" class="rio-form" data-submit-lock data-submit-text="Abriendo...">
-      {% csrf_token %}
+    <div class="rio-form">
       <div class="rio-actions rio-actions-inline">
-        <button type="submit" name="mode" value="trainer" class="btn btn-primary">Entrar como trainer</button>
-        <button type="submit" name="mode" value="client" class="btn">Entrar como cliente</button>
+        <form method="post" data-submit-lock data-submit-text="Abriendo...">
+          {% csrf_token %}
+          <input type="hidden" name="mode" value="trainer">
+          <button type="submit" class="btn btn-primary">Entrar como trainer</button>
+        </form>
+        <form method="post" data-submit-lock data-submit-text="Abriendo...">
+          {% csrf_token %}
+          <input type="hidden" name="mode" value="client">
+          <button type="submit" class="btn">Entrar como cliente</button>
+        </form>
       </div>
-    </form>
+    </div>
 
     <div class="hint">
       Puedes cambiar este modo luego desde <strong>Mi panel</strong>.

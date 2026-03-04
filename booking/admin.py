@@ -1,5 +1,6 @@
 from django.contrib import admin, messages
 from django.conf import settings
+from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import Count, Sum, Value, DecimalField
 from django.db.models.functions import Coalesce
@@ -7,6 +8,7 @@ from django.template.response import TemplateResponse
 from django.urls import path
 from django.utils import timezone
 import stripe
+import logging
 from decimal import Decimal
 from datetime import timedelta
 
@@ -24,6 +26,8 @@ from .models import (
     StripeRefundEvent,
     UserTwoFactorAuth,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class TrainerAvailabilityInline(admin.TabularInline):
@@ -78,13 +82,53 @@ class TrainerAdmin(admin.ModelAdmin):
 
     @admin.action(description="Aprobar entrenadores seleccionados")
     def approve_selected(self, request, queryset):
-        updated = queryset.update(is_approved=True)
+        to_approve = list(queryset.filter(is_approved=False).select_related("user"))
+        trainer_ids = [t.id for t in to_approve]
+        updated = Trainer.objects.filter(id__in=trainer_ids).update(is_approved=True) if trainer_ids else 0
+        for trainer in to_approve:
+            self._send_trainer_approved_email(trainer)
         self.message_user(request, f"Entrenadores aprobados: {updated}", level=messages.SUCCESS)
 
     @admin.action(description="Quitar aprobación a entrenadores seleccionados")
     def unapprove_selected(self, request, queryset):
         updated = queryset.update(is_approved=False)
         self.message_user(request, f"Aprobación removida: {updated}", level=messages.WARNING)
+
+    def _send_trainer_approved_email(self, trainer):
+        user = getattr(trainer, "user", None)
+        to_email = (getattr(user, "email", "") or "").strip()
+        if not to_email:
+            return
+        app_base_url = (getattr(settings, "APP_BASE_URL", "") or "").strip().rstrip("/")
+        portal_path = "/trainer/"
+        portal_url = f"{app_base_url}{portal_path}" if app_base_url else portal_path
+        subject = "Tu cuenta de entrenador fue aprobada"
+        body = (
+            f"Hola {trainer.business_name},\n\n"
+            "Tu perfil de entrenador en Reserv.io fue aprobado por el equipo administrador.\n"
+            f"Ya puedes entrar a tu portal y continuar la configuración: {portal_url}\n\n"
+            "Si no solicitaste esta cuenta, responde este correo."
+        )
+        try:
+            send_mail(
+                subject=subject,
+                message=body,
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+                recipient_list=[to_email],
+                fail_silently=False,
+            )
+        except Exception:
+            logger.exception("No se pudo enviar email de aprobacion trainer_id=%s", trainer.id)
+
+    def save_model(self, request, obj, form, change):
+        previously_approved = False
+        if change and obj.pk:
+            previously_approved = bool(
+                Trainer.objects.filter(pk=obj.pk, is_approved=True).exists()
+            )
+        super().save_model(request, obj, form, change)
+        if obj.is_approved and not previously_approved:
+            self._send_trainer_approved_email(obj)
 
     @admin.action(description="Publicar perfil seleccionado")
     def publish_selected(self, request, queryset):
@@ -143,8 +187,8 @@ class ClientAdmin(admin.ModelAdmin):
 
 @admin.register(ClientProfile)
 class ClientProfileAdmin(admin.ModelAdmin):
-    list_display = ("user", "full_name", "phone", "active", "created_at")
-    list_filter = ("active", "created_at")
+    list_display = ("user", "full_name", "phone", "email_verified", "active", "created_at")
+    list_filter = ("email_verified", "active", "created_at")
     search_fields = ("user__email", "full_name", "phone")
     ordering = ("-created_at",)
 

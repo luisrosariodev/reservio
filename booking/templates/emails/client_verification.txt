@@ -1,0 +1,7 @@
+{% extends "emails/base.txt" %}
+{% block content %}
+Confirma tu correo
+
+Hola{% if client_name %}, {{ client_name }}{% endif %}. Para activar tu cuenta de cliente, confirma tu correo aquí:
+{{ verify_link }}
+{% endblock %}

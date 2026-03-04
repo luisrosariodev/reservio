@@ -36,6 +36,7 @@ class AccountRoleRoutingTests(TestCase):
         return ClientProfile.objects.create(
             user=user,
             full_name="Client User",
+            email_verified=True,
             active=True,
         )
 
@@ -82,6 +83,29 @@ class AccountRoleRoutingTests(TestCase):
         self.assertRedirects(response, reverse("booking:client_portal_dashboard"))
         session = self.client.session
         self.assertEqual(session.get("account_active_role"), "client")
+
+    def test_login_with_next_client_for_unverified_client_goes_verify(self):
+        user = self._create_user(email="nextclientunverified@example.com")
+        ClientProfile.objects.create(
+            user=user,
+            full_name="Client User",
+            email_verified=False,
+            active=True,
+        )
+
+        response = self.client.post(
+            reverse("login"),
+            {
+                "username": "nextclientunverified@example.com",
+                "password": "pass12345",
+                "next": reverse("booking:client_portal_dashboard"),
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            f"{reverse('booking:client_verify_pending')}?email=nextclientunverified@example.com",
+        )
 
     def test_login_with_next_trainer_for_unverified_trainer_goes_verify(self):
         user = self._create_user(email="nexttrainer@example.com")
@@ -370,6 +394,7 @@ class DependentBookingFlowTests(TestCase):
         profile = ClientProfile.objects.create(
             user=user,
             full_name=full_name,
+            email_verified=True,
             active=True,
         )
         self.client.force_login(user)
@@ -528,7 +553,7 @@ class TwoFactorAuthTests(TestCase):
             email="2fa-client@example.com",
             password="pass12345",
         )
-        ClientProfile.objects.create(user=user, full_name="2FA Client", active=True)
+        ClientProfile.objects.create(user=user, full_name="2FA Client", email_verified=True, active=True)
         UserTwoFactorAuth.objects.create(
             user=user,
             is_enabled=True,

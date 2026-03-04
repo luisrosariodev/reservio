@@ -1,0 +1,9 @@
+{% extends "emails/base.txt" %}
+{% block content %}
+Cuenta activa
+
+Hola{% if client_name %}, {{ client_name }}{% endif %}. Tu cuenta de cliente ya está lista.
+Ir a tu portal: {{ portal_url }}
+
+Ahora puedes gestionar tus reservas, reprogramaciones y pagos.
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "emails/base.html" %}
+{% block title %}Tu cuenta de cliente ya está activa{% endblock %}
+{% block content %}
+<h1 style="margin:0 0 8px 0;font-size:30px;line-height:1.15;font-weight:800;color:#004e54;">Cuenta activa</h1>
+<p style="margin:0 0 16px 0;font-size:18px;line-height:1.5;color:#3d4a5c;">
+  Hola{% if client_name %}, {{ client_name }}{% endif %}. Tu cuenta de cliente ya está lista.
+</p>
+<p style="margin:0 0 22px 0;">
+  <a href="{{ portal_url }}" style="display:inline-block;background:#004e54;color:#ffffff;text-decoration:none;font-weight:700;font-size:16px;padding:12px 18px;border-radius:12px;">
+    Ir a mi portal
+  </a>
+</p>
+<p style="margin:0;font-size:14px;line-height:1.6;color:#637085;">
+  Ahora puedes gestionar tus reservas, reprogramaciones y pagos.
+</p>
+{% endblock %}
