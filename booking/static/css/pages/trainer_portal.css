@@ -4,6 +4,7 @@
   max-width:1240px;
   margin:0 auto;
   width:100%;
+  overflow-x:clip;
 }
 
 main .container,
@@ -44,6 +45,7 @@ main .shell{
 .portal-status-row{margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 
 .portal-section{border:1px solid var(--border);border-radius:16px;padding:16px}
+.portal-section{overflow-x:clip}
 .portal-section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .portal-head-title-wrap{display:flex;align-items:center;gap:10px}
 .portal-head-title{font-weight:800}
@@ -240,6 +242,7 @@ main .shell{
 .avail-row > *{
   min-width:0;
   max-width:100%;
+  overflow-x:clip;
 }
 .avail-times input[type="time"],
 .avail-times select{
@@ -366,6 +369,8 @@ main .shell{
     inline-size:100% !important;
     max-inline-size:100% !important;
     min-inline-size:0 !important;
+    -webkit-appearance:none;
+    appearance:none;
   }
   .avail-right{justify-content:flex-start}
   .avail-right .btn{width:100%}

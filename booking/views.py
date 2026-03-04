@@ -395,10 +395,11 @@ def _send_templated_email(*, subject, to, text_template, html_template, context,
     site_favicon_url = (getattr(settings, "SITE_FAVICON_URL", "") or "").strip() or "/static/img/favicon-256.png"
     if logo_url_raw.startswith("http://") or logo_url_raw.startswith("https://"):
         logo_url = logo_url_raw
-    elif logo_url_raw.startswith("/") and app_base_url:
-        logo_url = f"{app_base_url}{logo_url_raw}"
+    elif logo_url_raw.startswith("/"):
+        logo_url = f"{app_base_url}{logo_url_raw}" if app_base_url else ""
     elif logo_url_raw:
-        logo_url = logo_url_raw
+        # Avoid sending relative/local paths to email clients.
+        logo_url = ""
     elif site_favicon_url.startswith("/") and app_base_url:
         logo_url = f"{app_base_url}{site_favicon_url}"
     elif site_favicon_url.startswith("http://") or site_favicon_url.startswith("https://"):
@@ -455,7 +456,8 @@ def _send_templated_email(*, subject, to, text_template, html_template, context,
         except Exception:
             continue
 
-    if use_resend_api and logo_bytes:
+    use_logo_data_uri = bool(getattr(settings, "EMAIL_LOGO_INLINE_DATA_URI", False))
+    if use_resend_api and logo_bytes and use_logo_data_uri:
         merged_context["email_logo_data_uri"] = (
             f"data:{logo_mime};base64,{base64.b64encode(logo_bytes).decode('ascii')}"
         )
