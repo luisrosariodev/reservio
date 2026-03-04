@@ -228,6 +228,18 @@ main .shell{
 .avail-grid{display:grid;gap:10px;margin-top:12px}
 .avail-row{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end}
 .avail-row label{display:block;font-weight:600;margin-bottom:6px}
+.avail-grid,
+.avail-row,
+.avail-times,
+.avail-row > *{
+  min-width:0;
+}
+.avail-times input[type="time"],
+.avail-times select{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+}
 
 .avail-times{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .time-ampm-toggle{
@@ -334,6 +346,9 @@ main .shell{
   .avail-times > div{width:100%}
   .avail-times input,
   .avail-times select{width:100%}
+  .avail-times input[type="time"]{
+    font-size:16px; /* Prevent iOS zoom + clipping */
+  }
   .avail-right{justify-content:flex-start}
   .avail-right .btn{width:100%}
   .payments-grid{grid-template-columns:1fr}

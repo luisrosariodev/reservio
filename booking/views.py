@@ -6,6 +6,7 @@ import os
 import time
 import threading
 import base64
+import mimetypes
 from email.mime.image import MIMEImage
 
 import requests
@@ -416,6 +417,7 @@ def _send_templated_email(*, subject, to, text_template, html_template, context,
         "email_brand_url": brand_url,
         "email_logo_url": logo_url,
         "email_logo_cid": "",
+        "email_logo_data_uri": "",
         "email_support_email": support_email,
         "email_footer_note": footer_note,
         "email_legal_name": legal_name,
@@ -428,29 +430,40 @@ def _send_templated_email(*, subject, to, text_template, html_template, context,
     text_body = render_to_string(text_template, merged_context)
     logo_cid = ""
     logo_part = None
-    if not use_resend_api:
-        # Inline logo for better compatibility with SMTP clients.
-        logo_candidate_paths = []
-        if logo_file_raw:
-            if os.path.isabs(logo_file_raw):
-                logo_candidate_paths.append(logo_file_raw)
-            else:
-                logo_candidate_paths.append(os.path.join(settings.BASE_DIR, logo_file_raw))
-        if site_favicon_url.startswith("/media/"):
-            logo_candidate_paths.append(os.path.join(settings.MEDIA_ROOT, site_favicon_url.removeprefix("/media/")))
-        logo_candidate_paths.append(os.path.join(settings.MEDIA_ROOT, "favicon-256.png"))
+    logo_bytes = None
+    logo_mime = "image/png"
+    logo_candidate_paths = []
+    if logo_file_raw:
+        if os.path.isabs(logo_file_raw):
+            logo_candidate_paths.append(logo_file_raw)
+        else:
+            logo_candidate_paths.append(os.path.join(settings.BASE_DIR, logo_file_raw))
+    if site_favicon_url.startswith("/media/"):
+        logo_candidate_paths.append(os.path.join(settings.MEDIA_ROOT, site_favicon_url.removeprefix("/media/")))
+    logo_candidate_paths.append(os.path.join(settings.MEDIA_ROOT, "favicon-256.png"))
+    logo_candidate_paths.append(os.path.join(settings.BASE_DIR, "booking", "static", "img", "favicon-256.png"))
 
-        for candidate in logo_candidate_paths:
-            try:
-                if candidate and os.path.exists(candidate):
-                    with open(candidate, "rb") as fh:
-                        logo_part = MIMEImage(fh.read())
-                    logo_cid = "reservio-logo"
-                    logo_part.add_header("Content-ID", f"<{logo_cid}>")
-                    logo_part.add_header("Content-Disposition", "inline", filename=os.path.basename(candidate))
-                    break
-            except Exception:
-                continue
+    for candidate in logo_candidate_paths:
+        try:
+            if candidate and os.path.exists(candidate):
+                with open(candidate, "rb") as fh:
+                    logo_bytes = fh.read()
+                guessed = mimetypes.guess_type(candidate)[0]
+                if guessed:
+                    logo_mime = guessed
+                break
+        except Exception:
+            continue
+
+    if use_resend_api and logo_bytes:
+        merged_context["email_logo_data_uri"] = (
+            f"data:{logo_mime};base64,{base64.b64encode(logo_bytes).decode('ascii')}"
+        )
+    elif logo_bytes:
+        logo_part = MIMEImage(logo_bytes)
+        logo_cid = "reservio-logo"
+        logo_part.add_header("Content-ID", f"<{logo_cid}>")
+        logo_part.add_header("Content-Disposition", "inline", filename="reservio-logo")
 
     merged_context["email_logo_cid"] = logo_cid
     html_body = render_to_string(html_template, merged_context)

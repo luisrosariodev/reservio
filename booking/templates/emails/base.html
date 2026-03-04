@@ -14,7 +14,9 @@
             <td style="padding:24px 28px 10px 28px;">
               {% if email_logo_url %}
               <a href="{{ email_brand_url|default:'#' }}" style="text-decoration:none;">
-                {% if email_logo_cid %}
+                {% if email_logo_data_uri %}
+                <img src="{{ email_logo_data_uri }}" alt="{{ email_brand_name|default:'Reserv.io' }}" style="max-height:38px;display:block;border:0;">
+                {% elif email_logo_cid %}
                 <img src="cid:{{ email_logo_cid }}" alt="{{ email_brand_name|default:'Reserv.io' }}" style="max-height:38px;display:block;border:0;">
                 {% else %}
                 <img src="{{ email_logo_url }}" alt="{{ email_brand_name|default:'Reserv.io' }}" style="max-height:38px;display:block;border:0;">
